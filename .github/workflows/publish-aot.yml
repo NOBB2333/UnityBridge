@@ -33,10 +33,12 @@ jobs:
           dotnet-version: "10.0.x"
 
       - name: Publish AOT + SingleFile (${{ matrix.rid }})
+        shell: bash
         run: |
-          dotnet publish . \
+          dotnet publish UnityBridge/UnityBridge.csproj \
             -c Release \
             -r ${{ matrix.rid }} \
+            -o publish_output \
             --self-contained true \
             /p:PublishAot=true \
             /p:PublishSingleFile=true \
@@ -45,13 +47,13 @@ jobs:
             /p:DebugType=None \
             /p:DebugSymbols=false
 
-          # 打包（单文件发布后 publish 目录里只有一个 .exe 或无后缀可执行文件 + 少量 pdb）
-          cd bin/Release/net10.0/${{ matrix.rid }}/publish/
+          # 打包
+          cd publish_output
 
           if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a -r "../../../${{ matrix.artifact }}" *
+            7z a -r "../${{ matrix.artifact }}" *
           else
-            zip -r "../../../${{ matrix.artifact }}" *
+            zip -r "../${{ matrix.artifact }}" *
           fi
 
       - name: Upload Artifact to Release

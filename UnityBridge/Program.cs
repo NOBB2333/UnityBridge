@@ -55,8 +55,7 @@ class Program
             "2) 上传 (导入) 应用",
             "3) 检测文件/文件夹编码 (Not Implemented)",
             "4) 生成 API Key",
-            "5) 获取应用详情",
-            "6) Test URLHelper"
+            "5) 获取应用详情"
         };
 
         var commands = new Dictionary<string, Func<Task>>
@@ -65,8 +64,7 @@ class Program
             ["2"] = () => UploadCommand.RunAsync(client),
             ["3"] = () => { Console.WriteLine("检测文件/文件夹编码 功能尚未移植。"); return Task.CompletedTask; },
             ["4"] = () => GenerateKeyCommand.RunAsync(client),
-            ["5"] = () => GetAppInfoCommand.RunAsync(client),
-            ["6"] = () => { UnityBridge.Test.TestURLHelper.Run(); return Task.CompletedTask; }
+            ["5"] = () => GetAppInfoCommand.RunAsync(client)
         };
 
         while (true)

@@ -25,12 +25,20 @@ namespace UnityBridge.Tools.Utils
         /// <summary>
         /// 安全的URL解码 - 返回 Result，不会抛出异常
         /// </summary>
-        public static Result<string> TryUrlDecode(string url) => Try(() => HttpUtility.UrlDecode(url));
+        public static Result<string> TryUrlDecode(string url)
+        {
+            if (url == null) return new Result<string>(new ArgumentNullException(nameof(url)));
+            return new Result<string>(HttpUtility.UrlDecode(url));
+        }
 
         /// <summary>
         /// 安全的URL编码 - 返回 Result，不会抛出异常
         /// </summary>
-        public static Result<string> TryUrlEncode(string text) => Try(() => HttpUtility.UrlEncode(text));
+        public static Result<string> TryUrlEncode(string text)
+        {
+            if (text == null) return new Result<string>(new ArgumentNullException(nameof(text)));
+            return new Result<string>(HttpUtility.UrlEncode(text));
+        }
 
         /// <summary>
         /// 解析URL参数为字典
@@ -56,7 +64,6 @@ namespace UnityBridge.Tools.Utils
                         }
                     }
                 }
-
                 return result;
             }
 
@@ -77,21 +84,35 @@ namespace UnityBridge.Tools.Utils
         /// <summary>
         /// 安全的解析URL参数 - 返回 Result
         /// </summary>
-        public static Result<Dictionary<string, object>> TryParseUrlParams(string url) => Try(() => ParseUrlParams(url));
-
-        /// <summary>
-        /// 尝试执行操作并返回 Result
-        /// </summary>
-        private static Result<T> Try<T>(Func<T> func)
+        public static Result<Dictionary<string, object>> TryParseUrlParams(string url)
         {
-            try
+            if (string.IsNullOrEmpty(url)) 
+                return new Result<Dictionary<string, object>>(new Dictionary<string, object>());
+
+            // 尝试创建 URI，如果失败则尝试作为相对路径处理（兼容 ParseUrlParams 的逻辑）
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
             {
-                return new Result<T>(func());
+                // 如果不是绝对 URI，检查是否包含查询字符串
+                if (url.Contains("?"))
+                {
+                    // 这里我们复用 ParseUrlParams 的逻辑，因为它本身就是安全的（不抛出异常，只是返回空或部分结果）
+                    // 但为了符合 "Try" 的语义，如果解析完全失败（比如格式严重错误），应该返回 Failure。
+                    // 不过 ParseUrlParams 目前的设计是宽容的。
+                    // 为了高性能，我们可以直接调用 ParseUrlParams，因为它内部没有 try-catch。
+                    // 但用户希望 TryParseUrlParams 是 explicit safe via Result.
+                    
+                    // 让我们直接调用 ParseUrlParams，因为它现在是"安全"的（不抛异常）。
+                    // 如果未来 ParseUrlParams 变了，这里可能需要调整。
+                    // 但为了满足 Result 的形式：
+                    return new Result<Dictionary<string, object>>(ParseUrlParams(url));
+                }
+                
+                // 如果既不是 URI 也没有 ?，那可能只是一个路径，返回空字典
+                return new Result<Dictionary<string, object>>(new Dictionary<string, object>());
             }
-            catch (Exception ex)
-            {
-                return new Result<T>(ex);
-            }
+
+            // 如果是有效 URI，直接解析
+            return new Result<Dictionary<string, object>>(ParseUrlParams(url));
         }
 
         /// <summary>
