@@ -24,6 +24,8 @@ jobs:
             rid: osx-arm64
             artifact: UnityBridge-osx-arm64.zip
 
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
 
@@ -40,12 +42,12 @@ jobs:
             -r ${{ matrix.rid }} \
             -o publish_output \
             --self-contained true \
-            /p:PublishAot=true \
-            /p:PublishSingleFile=true \
-            /p:PublishTrimmed=true \
-            /p:IncludeAllContentForSelfExtract=true \
-            /p:DebugType=None \
-            /p:DebugSymbols=false
+            -p:PublishAot=true \
+            -p:PublishSingleFile=true \
+            -p:PublishTrimmed=true \
+            -p:IncludeAllContentForSelfExtract=true \
+            -p:DebugType=None \
+            -p:DebugSymbols=false
 
           # 打包
           cd publish_output
