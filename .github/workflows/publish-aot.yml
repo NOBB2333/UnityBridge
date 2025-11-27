@@ -1,0 +1,55 @@
+name: Publish Native AOT Multi-Platform
+
+on:
+  push:
+    tags: ["v*"] # 触发：推送 v1.0.0 等 tag 时
+
+jobs:
+  publish:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            rid: win-x64
+            artifact: UnityBridge-win-x64.zip # 调整为你的 app 名
+          - os: ubuntu-latest
+            rid: linux-x64
+            artifact: UnityBridge-linux-x64.zip
+          - os: macos-latest
+            rid: osx-x64
+            artifact: UnityBridge-osx-x64.zip
+    permissions:
+      contents: write # 用于上传 Release
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x" # 或 '8.0.x' 如果用 .NET 8
+
+      - name: Publish AOT for ${{ matrix.rid }}
+        run: |
+          dotnet publish -c Release -r ${{ matrix.rid }} --self-contained true /p:PublishAot=true /p:PublishSingleFile=true /p:PublishTrimmed=true
+          # 输出在 bin/Release/net10.0/${{ matrix.rid }}/publish/
+          # 打包成 zip（可选，便于上传）
+          cd bin/Release/net10.0/${{ matrix.rid }}/publish/
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a ../${{ matrix.artifact }} *
+          else
+            zip -r ../${{ matrix.artifact }} *
+          fi
+          cd ../../..
+
+      - name: Upload to Release
+        uses: softprops/action-gh-release@v2
+        if: startsWith(github.ref, 'refs/tags/')
+        with:
+          files: bin/Release/net10.0/${{ matrix.rid }}/publish/${{ matrix.artifact }}
+          tag_name: ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

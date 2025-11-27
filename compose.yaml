@@ -1,0 +1,7 @@
+﻿services:
+  unitybridge:
+    image: unitybridge
+    build:
+      context: .
+      dockerfile: UnityBridge/Dockerfile
+

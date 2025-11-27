@@ -1,0 +1,61 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <OutputType>Exe</OutputType>
+        <TargetFramework>net10.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
+    </PropertyGroup>
+
+    <!-- 选项1: Native AOT 发布配置 (取消注释以启用) -->
+    <!-- 优点: 最快启动速度, 最小内存占用, 无需 .NET Runtime -->
+    <!-- 缺点: 编译时间长, 文件较大, 不支持某些反射功能 -->
+    <!--
+    <PropertyGroup>
+        <PublishAot>true</PublishAot>
+        <InvariantGlobalization>false</InvariantGlobalization>
+        <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+        <IlcGenerateStackTraceData>false</IlcGenerateStackTraceData>
+    </PropertyGroup>
+    -->
+
+    <!-- 选项2: 单文件发布配置 (取消注释以启用) -->
+    <!-- 优点: 单个可执行文件, 方便分发, 需要 .NET Runtime -->
+    <!-- 缺点: 首次启动需要解压, 文件稍大 -->
+    <!--
+    <PropertyGroup>
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <RuntimeIdentifier>osx-arm64</RuntimeIdentifier>
+        <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
+        <EnableCompressionInSingleFile>true</EnableCompressionInSingleFile>
+    </PropertyGroup>
+    -->
+
+    <!-- 选项3: AOT + 单文件 混合配置 -->
+    <!-- 这是最优方案: 结合了 AOT 的性能和单文件的便利性 -->
+    <PropertyGroup>
+        <PublishAot>true</PublishAot>
+        <PublishSingleFile>true</PublishSingleFile>
+        <SelfContained>true</SelfContained>
+        <RuntimeIdentifier>osx-arm64</RuntimeIdentifier>
+        <InvariantGlobalization>false</InvariantGlobalization>
+        <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+    </PropertyGroup>
+   
+
+    <ItemGroup>
+      <Content Include="..\.dockerignore">
+        <Link>.dockerignore</Link>
+      </Content>
+    </ItemGroup>
+
+    <ItemGroup>
+      <ProjectReference Include="..\UnityBridge.Api.Dify\UnityBridge.Api.Dify.csproj" />
+      <ProjectReference Include="..\UnityBridge.Api.Sino\UnityBridge.Api.Sino.csproj" />
+      <ProjectReference Include="..\UnityBridge.Core\UnityBridge.Core.csproj" />
+      <ProjectReference Include="..\UnityBridge.Tools\UnityBridge.Tools.csproj" />
+    </ItemGroup>
+
+</Project>
