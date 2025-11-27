@@ -2,17 +2,18 @@ name: Publish Native AOT Multi-Platform
 
 on:
   push:
-    tags: ["v*"] # 触发：推送 v1.0.0 等 tag 时
+    tags: ["v*"] # 推送 v1.0.0 等 tag 触发
 
 jobs:
-  publish:
+  build:
     runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false # 一个平台失败不影响其他
       matrix:
         include:
           - os: windows-latest
             rid: win-x64
-            artifact: UnityBridge-win-x64.zip # 调整为你的 app 名
+            artifact: UnityBridge-win-x64.zip
           - os: ubuntu-latest
             rid: linux-x64
             artifact: UnityBridge-linux-x64.zip
@@ -22,8 +23,6 @@ jobs:
           - os: macos-latest
             rid: osx-arm64
             artifact: UnityBridge-osx-arm64.zip
-    permissions:
-      contents: write # 用于上传 Release
 
     steps:
       - uses: actions/checkout@v4
@@ -31,28 +30,32 @@ jobs:
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: "10.0.x" # 或 '8.0.x' 如果用 .NET 8
+          dotnet-version: "10.0.x"
 
-      - name: Publish AOT for ${{ matrix.rid }}
+      - name: Publish AOT + SingleFile (${{ matrix.rid }})
         run: |
-          dotnet publish -c Release -r ${{ matrix.rid }} --self-contained true /p:PublishAot=true /p:PublishSingleFile=true /p:PublishTrimmed=true
-          # 输出在 bin/Release/net10.0/${{ matrix.rid }}/publish/
-          # 打包成 zip（可选，便于上传）
-          cd bin/Release/net10.0/${{ matrix.rid }}/publish/
-          if [ "${{ matrix.os }}" = "windows-latest" ]; then
-            7z a ../${{ matrix.artifact }} *
-          else
-            zip -r ../${{ matrix.artifact }} *
-          fi
-          cd ../../..
+          dotnet publish . \
+            -c Release \
+            -r ${{ matrix.rid }} \
+            --self-contained true \
+            /p:PublishAot=true \
+            /p:PublishSingleFile=true \
+            /p:PublishTrimmed=true \
+            /p:IncludeAllContentForSelfExtract=true \
+            /p:DebugType=None \
+            /p:DebugSymbols=false
 
-      - name: Upload to Release
+          # 打包（单文件发布后 publish 目录里只有一个 .exe 或无后缀可执行文件 + 少量 pdb）
+          cd bin/Release/net10.0/${{ matrix.rid }}/publish/
+
+          if [ "${{ matrix.os }}" = "windows-latest" ]; then
+            7z a -r "../../../${{ matrix.artifact }}" *
+          else
+            zip -r "../../../${{ matrix.artifact }}" *
+          fi
+
+      - name: Upload Artifact to Release
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
         with:
-          files: bin/Release/net10.0/${{ matrix.rid }}/publish/${{ matrix.artifact }}
+          files: ${{ matrix.artifact }}
           tag_name: ${{ github.ref_name }}
-          draft: false
-          prerelease: false
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

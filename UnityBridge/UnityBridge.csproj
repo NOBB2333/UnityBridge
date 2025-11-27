@@ -35,15 +35,21 @@
 
     <!-- 选项3: AOT + 单文件 混合配置 -->
     <!-- 这是最优方案: 结合了 AOT 的性能和单文件的便利性 -->
-    <PropertyGroup>
-        <PublishAot>true</PublishAot>
-        <PublishSingleFile>true</PublishSingleFile>
-        <SelfContained>true</SelfContained>
-        <RuntimeIdentifier>osx-arm64</RuntimeIdentifier>
-        <InvariantGlobalization>false</InvariantGlobalization>
-        <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
-    </PropertyGroup>
-   
+<!--    <PropertyGroup>-->
+<!--        <PublishAot>true</PublishAot>-->
+<!--        <PublishSingleFile>true</PublishSingleFile>-->
+<!--        <SelfContained>true</SelfContained>-->
+<!--        <RuntimeIdentifier>osx-arm64</RuntimeIdentifier>-->
+<!--        <InvariantGlobalization>false</InvariantGlobalization>-->
+<!--        <IlcOptimizationPreference>Speed</IlcOptimizationPreference>-->
+<!--    </PropertyGroup>-->
+
+        <PropertyGroup>
+            <!-- 只保留 AOT 推荐设置（这些可以常驻，不影响非 AOT 编译） -->
+            <PublishTrimmed>true</PublishTrimmed>
+            <InvariantGlobalization>false</InvariantGlobalization>
+            <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+        </PropertyGroup>
 
     <ItemGroup>
       <Content Include="..\.dockerignore">
