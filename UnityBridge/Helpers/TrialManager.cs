@@ -1,5 +1,7 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
+using System.Management;
 using System.Net.NetworkInformation;
 using System.Security.Cryptography;
 using System.Text;
@@ -56,16 +58,108 @@ public static class TrialManager
     /// </summary>
     private static string GetHardwareId()
     {
-        var sb = new StringBuilder();
-        sb.Append(Environment.MachineName);
-        sb.Append("|");
-        sb.Append(Environment.OSVersion.VersionString);
-        sb.Append("|");
-        sb.Append(Environment.ProcessorCount);
+        var markers = new List<string>();
+        markers.AddRange(GetWmiHardwareMarkers());
 
+        if (markers.Count == 0)
+        {
+            markers.AddRange(GetFallbackHardwareMarkers());
+        }
+
+        var sb = new StringBuilder();
+        foreach (var marker in markers)
+        {
+            if (string.IsNullOrWhiteSpace(marker))
+                continue;
+
+            if (sb.Length > 0)
+            {
+                sb.Append('|');
+            }
+
+            sb.Append(marker.Trim());
+        }
+
+        if (sb.Length == 0)
+        {
+            sb.Append(Environment.MachineName);
+        }
+
+        var rawBytes = Encoding.UTF8.GetBytes(sb.ToString());
+        var md5 = CryptoHelper.Md5Hex(rawBytes);
+        return md5.ToUpperInvariant(); // 固定 32 字符长度
+    }
+
+    private static IEnumerable<string> GetWmiHardwareMarkers()
+    {
+        if (!OperatingSystem.IsWindows())
+            yield break;
+
+        var targets = new (string ClassName, string Property)[]
+        {
+            ("Win32_ComputerSystemProduct", "UUID"),
+            ("Win32_BaseBoard", "SerialNumber"),
+            ("Win32_BIOS", "SerialNumber"),
+            ("Win32_Processor", "ProcessorId"),
+            ("Win32_DiskDrive", "SerialNumber")
+        };
+
+        foreach (var (className, property) in targets)
+        {
+            var value = TryGetWmiProperty(className, property);
+            if (!string.IsNullOrWhiteSpace(value))
+            {
+                yield return value!;
+            }
+        }
+    }
+
+    private static string? TryGetWmiProperty(string className, string property)
+    {
         try
         {
-            // 取第一个有效网卡的 MAC 作为指纹的一部分
+            using var searcher = new ManagementObjectSearcher($"SELECT {property} FROM {className}");
+            using var results = searcher.Get();
+            foreach (var obj in results)
+            {
+                if (obj is not ManagementObject managementObject)
+                    continue;
+
+                var value = managementObject[property]?.ToString();
+                if (string.IsNullOrWhiteSpace(value))
+                    continue;
+
+                if (value.Equals("To Be Filled By O.E.M.", StringComparison.OrdinalIgnoreCase))
+                    continue;
+
+                return value.Trim();
+            }
+        }
+        catch
+        {
+            // 忽略无法访问 WMI 的情况
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<string> GetFallbackHardwareMarkers()
+    {
+        yield return Environment.MachineName;
+        yield return Environment.SystemDirectory;
+        yield return Environment.ProcessorCount.ToString();
+
+        var mac = GetPrimaryMacAddress();
+        if (!string.IsNullOrWhiteSpace(mac))
+        {
+            yield return mac;
+        }
+    }
+
+    private static string? GetPrimaryMacAddress()
+    {
+        try
+        {
             foreach (var nic in NetworkInterface.GetAllNetworkInterfaces())
             {
                 if (nic.OperationalStatus != OperationalStatus.Up)
@@ -79,19 +173,15 @@ public static class TrialManager
                 if (macBytes.Length == 0)
                     continue;
 
-                sb.Append("|");
-                sb.Append(BitConverter.ToString(macBytes).Replace("-", ""));
-                break;
+                return BitConverter.ToString(macBytes).Replace("-", "");
             }
         }
         catch
         {
-            // 忽略获取网卡信息失败的情况，仍然可以根据其它信息生成指纹
+            // 忽略获取网卡信息失败的情况
         }
 
-        var rawBytes = Encoding.UTF8.GetBytes(sb.ToString());
-        var md5 = CryptoHelper.Md5Hex(rawBytes);
-        return md5.ToUpperInvariant(); // 固定 32 字符长度
+        return null;
     }
 
     /// <summary>
