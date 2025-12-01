@@ -3,7 +3,7 @@ using System.Globalization;
 using UnityBridge.Api.Dify;
 using UnityBridge.Api.Dify.Extensions;
 using UnityBridge.Api.Dify.Models;
-using UnityBridge.Helpers; // Added this line
+using UnityBridge.Helpers;
 
 namespace UnityBridge.Commands;
 
@@ -101,7 +101,8 @@ public static class GetAppInfoCommand
 
         Console.WriteLine("\n应用信息:");
         Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(response, new System.Text.Json.JsonSerializerOptions { WriteIndented = true }));
+        var jsonOptions = new System.Text.Json.JsonSerializerOptions(AppJsonSerializerContext.Default.Options) { WriteIndented = true };
+        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(response, typeof(ConsoleApiAppsAppidResponse), AppJsonSerializerContext.Default));
         Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
     }
 

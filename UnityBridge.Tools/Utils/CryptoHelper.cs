@@ -64,7 +64,8 @@ public static class CryptoHelper
     /// </summary>
     public static string EncryptAes256CbcBase64(string plain, string keyHex, string ivHex)
     {
-        return EncryptAes256CbcBase64(Encoding.UTF8.GetBytes(plain), Convert.FromHexString(keyHex), Convert.FromHexString(ivHex));
+        return EncryptAes256CbcBase64(Encoding.UTF8.GetBytes(plain), Convert.FromHexString(keyHex),
+            Convert.FromHexString(ivHex));
     }
 
     /// <summary>
@@ -91,16 +92,16 @@ public static class CryptoHelper
     public static string EncryptAes256GcmBase64(byte[] plain, byte[] key, byte[] nonce, byte[]? associatedData = null)
     {
         // .NET AesGcm requires nonce to be 12 bytes usually
-        using var aesGcm = new AesGcm(key);
+        using var aesGcm = new AesGcm(key, 16); // Specify tag size: 16 bytes
         var tag = new byte[16]; // standard tag size
         var ciphertext = new byte[plain.Length];
         aesGcm.Encrypt(nonce, plain, ciphertext, tag, associatedData);
-        
+
         // Combine ciphertext + tag
         var result = new byte[ciphertext.Length + tag.Length];
         Buffer.BlockCopy(ciphertext, 0, result, 0, ciphertext.Length);
         Buffer.BlockCopy(tag, 0, result, ciphertext.Length, tag.Length);
-        
+
         return Convert.ToBase64String(result);
     }
 
@@ -122,7 +123,7 @@ public static class CryptoHelper
         Buffer.BlockCopy(data, data.Length - 16, tag, 0, 16);
         Buffer.BlockCopy(data, 0, ciphertext, 0, data.Length - 16);
 
-        using var aesGcm = new AesGcm(key);
+        using var aesGcm = new AesGcm(key, 16); // Specify tag size: 16 bytes
         var plaintext = new byte[ciphertext.Length];
         aesGcm.Decrypt(nonce, ciphertext, tag, plaintext, associatedData);
         return plaintext;
@@ -184,7 +185,8 @@ public static class CryptoHelper
     /// <summary>
     /// 计算带盐值的字符串 MD5 哈希，返回小写 Hex 字符串。
     /// </summary>
-    public static string Md5HexWithSalt(string input, string salt) => Md5HexWithSalt(Encoding.UTF8.GetBytes(input), Encoding.UTF8.GetBytes(salt));
+    public static string Md5HexWithSalt(string input, string salt) =>
+        Md5HexWithSalt(Encoding.UTF8.GetBytes(input), Encoding.UTF8.GetBytes(salt));
 
     /// <summary>
     /// 计算 SHA-1 哈希，返回小写 Hex 字符串。
@@ -214,7 +216,8 @@ public static class CryptoHelper
     /// <summary>
     /// 计算字符串的 HMAC-SHA256 哈希，返回小写 Hex 字符串。
     /// </summary>
-    public static string HmacSha256Hex(string key, string data) => HmacSha256Hex(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(data));
+    public static string HmacSha256Hex(string key, string data) =>
+        HmacSha256Hex(Encoding.UTF8.GetBytes(key), Encoding.UTF8.GetBytes(data));
 
     #endregion
 
@@ -254,7 +257,10 @@ public static class CryptoHelper
     /// </summary>
     public static string RsaPublicKeyFromCertificate(string certificatePem)
     {
-        var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(Encoding.UTF8.GetBytes(certificatePem));
+        var certBytes = Encoding.UTF8.GetBytes(certificatePem);
+#pragma warning disable SYSLIB0057 // X509Certificate2 constructor is obsolete, but X509CertificateLoader may not be available in all .NET versions
+        var cert = new System.Security.Cryptography.X509Certificates.X509Certificate2(certBytes);
+#pragma warning restore SYSLIB0057
         using var rsa = cert.GetRSAPublicKey();
         if (rsa == null) throw new ArgumentException("Certificate does not contain an RSA public key");
         return rsa.ExportSubjectPublicKeyInfoPem();
@@ -283,7 +289,7 @@ public static class CryptoHelper
         signer.Init(true, privateKeyParam);
         signer.BlockUpdate(message, 0, message.Length);
         var signature = signer.GenerateSignature();
-        
+
         return Convert.ToBase64String(signature);
     }
 
@@ -362,7 +368,8 @@ public static class CryptoHelper
     /// </summary>
     public static string Sm4CbcEncryptBase64(string plain, string keyHex, string ivHex)
     {
-        return Sm4CbcEncryptBase64(Convert.FromHexString(keyHex), Convert.FromHexString(ivHex), Encoding.UTF8.GetBytes(plain));
+        return Sm4CbcEncryptBase64(Convert.FromHexString(keyHex), Convert.FromHexString(ivHex),
+            Encoding.UTF8.GetBytes(plain));
     }
 
     /// <summary>
@@ -480,6 +487,7 @@ public class AesCipher
         {
             throw new ArgumentException("AES key must be 16/24/32 bytes");
         }
+
         _key = key;
         _iv = new byte[16];
         if (iv != null)
@@ -495,7 +503,7 @@ public class AesCipher
     /// <summary>
     /// 初始化 AES 加解密类 (Hex 字符串)。
     /// </summary>
-    public AesCipher(string keyHex, string? ivHex = null) 
+    public AesCipher(string keyHex, string? ivHex = null)
         : this(Encoding.UTF8.GetBytes(keyHex), ivHex != null ? Encoding.UTF8.GetBytes(ivHex) : null)
     {
         // Note: Rust implementation takes AsRef<[u8]> which can be string bytes or raw bytes.
@@ -510,7 +518,7 @@ public class AesCipher
     public string Encrypt(string text)
     {
         var plain = Encoding.UTF8.GetBytes(text);
-        return CryptoHelper.EncryptAes256CbcBase64(plain, _key, _iv); 
+        return CryptoHelper.EncryptAes256CbcBase64(plain, _key, _iv);
         // Wait, Rust implementation supports 128/192/256 based on key length.
         // My EncryptAes256CbcBase64 hardcodes 256.
         // I should fix EncryptAes256CbcBase64 or use a dynamic one.

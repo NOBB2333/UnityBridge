@@ -361,7 +361,8 @@ public static class FileHelper
         // Simple BOM check
         using var fs = new FileStream(path, FileMode.Open, FileAccess.Read);
         var bom = new byte[4];
-        fs.Read(bom, 0, 4);
+        var bytesRead = fs.Read(bom, 0, 4);
+        if (bytesRead < 2) return "UTF-8 (No BOM)"; // Not enough bytes for BOM detection
 
         if (bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf) return "UTF-8";
         if (bom[0] == 0xff && bom[1] == 0xfe) return "UTF-16LE";
@@ -370,5 +371,246 @@ public static class FileHelper
         if (bom[0] == 0x00 && bom[1] == 0x00 && bom[2] == 0xfe && bom[3] == 0xff) return "UTF-32BE";
 
         return "UTF-8 (No BOM)"; // Default assumption
+    }
+
+    /// <summary>
+    /// 检测文件或目录中所有文件的编码（移植自 Rust encoding_detector.rs）。
+    /// </summary>
+    /// <param name="targetPath">文件或目录路径</param>
+    /// <returns>如果路径不存在则抛出异常</returns>
+    public static void DetectEncoding(string targetPath)
+    {
+        if (string.IsNullOrEmpty(targetPath))
+        {
+            throw new ArgumentException("Path cannot be null or empty", nameof(targetPath));
+        }
+
+        var path = Path.GetFullPath(targetPath);
+        
+        if (!File.Exists(path) && !Directory.Exists(path))
+        {
+            throw new FileNotFoundException($"Path '{path}' does not exist");
+        }
+
+        if (File.Exists(path))
+        {
+            ReportFile(path);
+            return;
+        }
+
+        if (Directory.Exists(path))
+        {
+            Console.WriteLine("TYPE\tENCODING\tPATH");
+            var hasFiles = false;
+            
+            foreach (var filePath in Directory.GetFiles(path, "*", SearchOption.AllDirectories))
+            {
+                hasFiles = true;
+                try
+                {
+                    ReportFile(filePath);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"Failed to read {filePath}: {ex.Message}");
+                }
+            }
+            
+            if (!hasFiles)
+            {
+                Console.WriteLine($"(no files found under {path})");
+            }
+            return;
+        }
+
+        throw new ArgumentException($"Path '{path}' is neither file nor directory");
+    }
+
+    /// <summary>
+    /// 报告单个文件的编码信息。
+    /// </summary>
+    private static void ReportFile(string filePath)
+    {
+        var encoding = DetectFileEncodingAdvanced(filePath);
+        var canonicalPath = Path.GetFullPath(filePath);
+        Console.WriteLine($"FILE\t{encoding}\t{canonicalPath}");
+    }
+
+    /// <summary>
+    /// 检测单个文件的编码（增强版，支持更多编码类型）。
+    /// 移植自 Rust encoding_detector.rs 的 detect_file_encoding 函数。
+    /// </summary>
+    /// <param name="path">文件路径</param>
+    /// <returns>编码名称</returns>
+    public static string DetectFileEncodingAdvanced(string path)
+    {
+        const int bufferSize = 8192;
+        
+        using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read);
+        
+        // 首先检查 BOM
+        var bom = new byte[4];
+        var bomBytesRead = fs.Read(bom, 0, 4);
+        
+        if (bomBytesRead >= 2)
+        {
+            // UTF-8 BOM
+            if (bomBytesRead >= 3 && bom[0] == 0xef && bom[1] == 0xbb && bom[2] == 0xbf)
+            {
+                return "UTF-8";
+            }
+            
+            // UTF-16LE BOM
+            if (bom[0] == 0xff && bom[1] == 0xfe)
+            {
+                // 检查是否是 UTF-32LE
+                if (bomBytesRead >= 4 && bom[2] == 0x00 && bom[3] == 0x00)
+                {
+                    return "UTF-32LE";
+                }
+                return "UTF-16LE";
+            }
+            
+            // UTF-16BE BOM
+            if (bom[0] == 0xfe && bom[1] == 0xff)
+            {
+                return "UTF-16BE";
+            }
+            
+            // UTF-32BE BOM
+            if (bomBytesRead >= 4 && bom[0] == 0x00 && bom[1] == 0x00 && bom[2] == 0xfe && bom[3] == 0xff)
+            {
+                return "UTF-32BE";
+            }
+        }
+
+        // 重置流位置（跳过已读取的 BOM）
+        fs.Position = 0;
+        
+        // 读取文件内容进行启发式检测
+        var buffer = new byte[bufferSize];
+        var totalBytesRead = 0;
+        var nullBytesCount = 0;
+        var highBytesCount = 0;
+        var asciiBytesCount = 0;
+        
+        while (totalBytesRead < bufferSize)
+        {
+            var bytesRead = fs.Read(buffer, totalBytesRead, bufferSize - totalBytesRead);
+            if (bytesRead == 0) break;
+            totalBytesRead += bytesRead;
+        }
+        
+        // 分析字节模式
+        for (int i = 0; i < totalBytesRead; i++)
+        {
+            var b = buffer[i];
+            
+            if (b == 0x00)
+            {
+                nullBytesCount++;
+            }
+            else if (b < 0x80)
+            {
+                asciiBytesCount++;
+            }
+            else if (b >= 0x80)
+            {
+                highBytesCount++;
+            }
+        }
+        
+        // 启发式检测逻辑
+        if (nullBytesCount > 0 && totalBytesRead > 0)
+        {
+            var nullRatio = (double)nullBytesCount / totalBytesRead;
+            // 如果包含大量 null 字节，可能是 UTF-16 或 UTF-32
+            if (nullRatio > 0.1)
+            {
+                // 检查是否是 UTF-16LE 模式（每两个字节一个 null）
+                var utf16LePattern = true;
+                for (int i = 0; i < Math.Min(totalBytesRead - 1, 100); i += 2)
+                {
+                    if (i + 1 < totalBytesRead && buffer[i + 1] != 0x00 && buffer[i] != 0x00)
+                    {
+                        utf16LePattern = false;
+                        break;
+                    }
+                }
+                if (utf16LePattern) return "UTF-16LE";
+                
+                // 检查是否是 UTF-16BE 模式
+                var utf16BePattern = true;
+                for (int i = 0; i < Math.Min(totalBytesRead - 1, 100); i += 2)
+                {
+                    if (i + 1 < totalBytesRead && buffer[i] != 0x00 && buffer[i + 1] != 0x00)
+                    {
+                        utf16BePattern = false;
+                        break;
+                    }
+                }
+                if (utf16BePattern) return "UTF-16BE";
+            }
+        }
+        
+        // 检查 GBK/GB2312 模式（中文字符）
+        if (highBytesCount > 0 && totalBytesRead > 0)
+        {
+            var highByteRatio = (double)highBytesCount / totalBytesRead;
+            if (highByteRatio > 0.1)
+            {
+                // 检查是否是 GBK/GB2312 模式
+                var gbkPattern = true;
+                for (int i = 0; i < Math.Min(totalBytesRead - 1, 200); i++)
+                {
+                    if (buffer[i] >= 0x81 && buffer[i] <= 0xFE)
+                    {
+                        if (i + 1 < totalBytesRead && 
+                            buffer[i + 1] >= 0x40 && buffer[i + 1] <= 0xFE && buffer[i + 1] != 0x7F)
+                        {
+                            // 可能是 GBK
+                            return "GBK";
+                        }
+                    }
+                }
+            }
+        }
+        
+        // 尝试使用 UTF-8 解码验证
+        try
+        {
+            fs.Position = 0;
+            using var reader = new StreamReader(fs, Encoding.UTF8, detectEncodingFromByteOrderMarks: false, bufferSize: bufferSize, leaveOpen: true);
+            var sample = new char[bufferSize];
+            var charsRead = reader.Read(sample, 0, bufferSize);
+            
+            // 检查是否包含无效字符
+            var hasInvalidChars = false;
+            for (int i = 0; i < charsRead; i++)
+            {
+                if (char.IsSurrogate(sample[i]) && !char.IsHighSurrogate(sample[i]))
+                {
+                    hasInvalidChars = true;
+                    break;
+                }
+            }
+            
+            if (!hasInvalidChars && charsRead > 0)
+            {
+                return "UTF-8";
+            }
+        }
+        catch
+        {
+            // UTF-8 解码失败，继续其他检测
+        }
+        
+        // 默认返回
+        if (asciiBytesCount == totalBytesRead)
+        {
+            return "ASCII";
+        }
+        
+        return "UTF-8 (No BOM)";
     }
 }

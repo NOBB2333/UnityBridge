@@ -52,7 +52,8 @@ public static class DownloadCommand
                 }
                 else if (exportResponse.Data != null)
                 {
-                     yamlContent = System.Text.Json.JsonSerializer.Serialize(exportResponse.Data);
+                     // Data is already a string, no need to serialize
+                     yamlContent = exportResponse.Data;
                 }
                 else
                 {
