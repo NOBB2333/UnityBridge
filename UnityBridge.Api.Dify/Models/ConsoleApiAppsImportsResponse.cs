@@ -5,8 +5,45 @@ namespace UnityBridge.Api.Dify.Models;
 /// </summary>
 public class ConsoleApiAppsImportsResponse : DifyApiResponse
 {
-    // 响应数据结构可能与 App 详情类似，或者只是简单的成功消息
-    // 根据 Rust 代码，它包含 data 字段，但具体结构未定义，暂时留空或使用 object
-    [System.Text.Json.Serialization.JsonPropertyName("data")]
-    public object? Data { get; set; }
+    /// <summary>
+    /// 获取或设置导入任务 ID。
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("id")]
+    public string? TaskId { get; set; }
+
+    /// <summary>
+    /// 获取或设置导入任务状态。
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("status")]
+    public override string? Status { get; set; }
+
+    /// <summary>
+    /// 获取或设置应用 ID。
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("app_id")]
+    public string? AppId { get; set; }
+
+    /// <summary>
+    /// 获取或设置应用模式。
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("app_mode")]
+    public string? AppMode { get; set; }
+
+    /// <summary>
+    /// 获取或设置当前 DSL 版本。
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("current_dsl_version")]
+    public string? CurrentDslVersion { get; set; }
+
+    /// <summary>
+    /// 获取或设置导入的 DSL 版本。
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("imported_dsl_version")]
+    public string? ImportedDslVersion { get; set; }
+
+    /// <summary>
+    /// 获取或设置错误信息。
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("error")]
+    public string? Error { get; set; }
 }

@@ -40,7 +40,7 @@ dotnet run --project UnityBridge/UnityBridge.csproj
 
 按提示输入编号回车即可。
 
-> 提示：连接地址、请求头（含 Token / Cookie 等）在 `UnityBridge/Program.cs` 中的 `BaseUrl`、`HeaderSpec` 常量里配置，使用前请根据自己的环境修改。
+> 提示：连接地址、请求头（含 Token / Cookie 等）统一保存在 `UnityBridge/Configuration/*.json` 中（例如 `Download.json` 里的 `Download` / `Upload` 节），程序启动时通过 Options 自动加载，保持节名称与文件中的对象名称一致即可无需硬编码，使用前请根据自己的环境修改这些 JSON。
 
 ---
 

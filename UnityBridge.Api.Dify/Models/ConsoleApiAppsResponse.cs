@@ -58,10 +58,10 @@ public class ConsoleApiAppsResponse : DifyApiResponse
             public string? IconUrl { get; set; }
 
             /// <summary>
-            /// 获取或设置标签列表。
+            /// 获取或设置标签列表（可能为字符串或对象，保持 JsonElement 以兼容不同结构）。
             /// </summary>
             [System.Text.Json.Serialization.JsonPropertyName("tags")]
-            public string[] Tags { get; set; } = default!;
+            public System.Text.Json.JsonElement[]? Tags { get; set; }
         }
     }
 
