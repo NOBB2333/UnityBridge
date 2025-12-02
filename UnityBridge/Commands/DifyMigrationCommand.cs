@@ -12,7 +12,7 @@ namespace UnityBridge.Commands;
 /// </summary>
 public static class DifyMigrationCommand
 {
-    private const string ExportDir = "exports";
+    private const string ExportDir = "exports2";
 
     /// <summary>
     /// 导出所有应用（原 DownloadCommand.RunAsync）。
@@ -45,9 +45,7 @@ public static class DifyMigrationCommand
         }
 
         if (!Directory.Exists(ExportDir))
-        {
             Directory.CreateDirectory(ExportDir);
-        }
 
         Console.WriteLine($"data count: {allApps.Count}");
         var csvPath = Path.Combine(ExportDir, "apps.csv");
@@ -119,7 +117,10 @@ public static class DifyMigrationCommand
                      || string.Equals(Path.GetExtension(f), ".yaml", StringComparison.OrdinalIgnoreCase))
             .Except(workflowFiles)
             .ToArray();
-
+        
+        
+        Console.WriteLine($"File Count WorkFlow: {workflowFiles.Length}");
+        Console.WriteLine($"File Count NO WorkFlow: {otherFiles.Length}");
         async Task ImportFileAsync(string path)
         {
             var ext = Path.GetExtension(path);

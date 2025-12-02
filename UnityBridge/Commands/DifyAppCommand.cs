@@ -1,4 +1,5 @@
 using CsvHelper;
+using Flurl.Http;
 using System.Globalization;
 using UnityBridge.Api.Dify;
 using UnityBridge.Api.Dify.Extensions;
@@ -50,19 +51,52 @@ public static class DifyAppCommand
 
     private static async Task GenerateKeyForAppAsync(DifyApiClient client, string appId)
     {
-        var request = new ConsoleApiAppsAppidApikeysCreateRequest { AppId = appId };
-        var response = await client.ExecuteConsoleApiAppsAppidApikeysCreateAsync(request);
-
-        Console.WriteLine("\n✓ API Key 生成成功!");
-        Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        Console.WriteLine($"ID:        {response.Data.Id}");
-        if (!string.IsNullOrEmpty(response.Data.Token))
+        try
         {
-            Console.WriteLine($"Token:     {response.Data.Token}");
+            var request = new ConsoleApiAppsAppidApikeysCreateRequest { AppId = appId };
+            var response = await client.ExecuteConsoleApiAppsAppidApikeysCreateAsync(request);
+
+            Console.WriteLine("\n✓ API Key 生成成功!");
+            Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            Console.WriteLine($"ID:        {response.Id}");
+            if (!string.IsNullOrEmpty(response.Token))
+            {
+                Console.WriteLine($"Token:     {response.Token}");
+            }
+            Console.WriteLine($"Created:   {(response.CreatedAt.HasValue ? response.CreatedAt.Value.ToString() : "N/A")}");
+            Console.WriteLine($"Last Used: {(response.LastUsedAt.HasValue ? response.LastUsedAt.Value.ToString() : "从未使用")}");
+            Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+
+            // 再拉一次当前应用下的全部 API Key 并打印
+            var listRequest = new ConsoleApiAppsAppidApikeysRequest { AppId = appId };
+            var listResponse = await client.ExecuteConsoleApiAppsAppidApikeysAsync(listRequest);
+
+            if (listResponse.Data is { Length: > 0 })
+            {
+                Console.WriteLine("当前应用下所有 API Key：");
+                Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                foreach (var key in listResponse.Data)
+                {
+                    var createdText = key.CreatedAt.HasValue ? key.CreatedAt.Value.ToString() : "N/A";
+                    var lastUsedText = key.LastUsedAt.HasValue ? key.LastUsedAt.Value.ToString() : "从未使用";
+                    Console.WriteLine($"ID:        {key.Id}");
+                    Console.WriteLine($"Token:     {key.Token}");
+                    Console.WriteLine($"Created:   {createdText}");
+                    Console.WriteLine($"Last Used: {lastUsedText}");
+                    Console.WriteLine("────────────────────────────────────────");
+                }
+                Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+            }
+            else
+            {
+                Console.WriteLine("当前应用下暂无 API Key 记录。\n");
+            }
         }
-        Console.WriteLine($"Created:   {response.Data.CreatedAt ?? "N/A"}");
-        Console.WriteLine($"Last Used: {(string.IsNullOrEmpty(response.Data.LastUsedAt) ? "从未使用" : response.Data.LastUsedAt)}");
-        Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"生成或查询 API Key 失败: {ex.Message}");
+            await LogDetailFetchErrorAsync(ex);
+        }
 
         await Task.Delay(300);
     }
@@ -108,15 +142,25 @@ public static class DifyAppCommand
         }
     }
 
+    // 获取所有的明细
     private static async Task GetAppInfoAsync(DifyApiClient client, string appId)
     {
+        // 获取具体明细
         var request = new ConsoleApiAppsAppidRequest { AppId = appId };
-        var response = await client.ExecuteConsoleApiAppsAppidAsync(request);
+        try
+        {
+            var response = await client.ExecuteConsoleApiAppsAppidAsync(request);
 
-        Console.WriteLine("\n应用信息:");
-        Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-        Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(response, typeof(ConsoleApiAppsAppidResponse), AppJsonSerializerContext.Default));
-        Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+            Console.WriteLine("\n应用信息:");
+            Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            Console.WriteLine(System.Text.Json.JsonSerializer.Serialize(response, typeof(ConsoleApiAppsAppidResponse), AppJsonSerializerContext.Default));
+            Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n");
+        }
+        catch (Exception ex)
+        {
+            Console.Error.WriteLine($"获取 {appId} 详情失败: {ex.Message}");
+            await LogDetailFetchErrorAsync(ex);
+        }
     }
 
     private static async Task ExportAppMatrixAsync(DifyApiClient client)
@@ -149,19 +193,63 @@ public static class DifyAppCommand
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"获取 {summary.Name} ({summary.Id}) 详情失败: {ex.Message}");
+                await LogDetailFetchErrorAsync(ex);
             }
 
             rows.Add(new AppMatrixRow
             {
                 AppId = summary.Id,
-                Name = summary.Name,
-                SummaryMode = summary.Mode,
-                DetailMode = detail?.Mode,
-                SummaryDescription = summary.Description,
-                DetailDescription = detail?.Description,
+                Name = detail?.Name ?? summary.Name,
+                Mode = detail?.Mode ?? summary.Mode,
+                Description = detail?.Description ?? summary.Description,
                 IconType = detail?.IconType ?? summary.IconType,
+                Icon = detail?.Icon ?? summary.Icon,
+                IconBackground = detail?.IconBackground ?? summary.IconBackground,
                 IconUrl = detail?.IconUrl ?? summary.IconUrl,
-                Tags = FormatTags(summary.Tags),
+                Tags = MergeTags(detail, summary),
+                MaxActiveRequests = summary.MaxActiveRequests,
+                ModelConfig = ResolveModelConfig(detail, summary),
+                WorkflowId = detail?.Workflow?.Id ?? summary.Workflow?.Id,
+                WorkflowCreatedBy = detail?.Workflow?.CreatedBy ?? summary.Workflow?.CreatedBy,
+                WorkflowCreatedAt = detail?.Workflow?.CreatedAt ?? summary.Workflow?.CreatedAt,
+                WorkflowUpdatedBy = detail?.Workflow?.UpdatedBy ?? summary.Workflow?.UpdatedBy,
+                WorkflowUpdatedAt = detail?.Workflow?.UpdatedAt ?? summary.Workflow?.UpdatedAt,
+                UseIconAsAnswerIcon = detail?.UseIconAsAnswerIcon ?? summary.UseIconAsAnswerIcon,
+                CreatedBy = detail?.CreatedBy ?? summary.CreatedBy,
+                CreatedAt = detail?.CreatedAt ?? summary.CreatedAt,
+                UpdatedBy = detail?.UpdatedBy ?? summary.UpdatedBy,
+                UpdatedAt = detail?.UpdatedAt ?? summary.UpdatedAt,
+                AccessMode = detail?.AccessMode ?? summary.AccessMode,
+                CreateUserName = summary.CreateUserName,
+                AuthorName = summary.AuthorName,
+                EnableSite = detail?.EnableSite,
+                EnableApi = detail?.EnableApi,
+                SiteAccessToken = detail?.Site?.AccessToken,
+                SiteCode = detail?.Site?.Code,
+                SiteTitle = detail?.Site?.Title,
+                SiteIconType = detail?.Site?.IconType,
+                SiteIcon = detail?.Site?.Icon,
+                SiteIconBackground = detail?.Site?.IconBackground,
+                SiteIconUrl = detail?.Site?.IconUrl,
+                SiteDescription = detail?.Site?.Description,
+                SiteDefaultLanguage = detail?.Site?.DefaultLanguage,
+                SiteChatColorTheme = detail?.Site?.ChatColorTheme,
+                SiteChatColorThemeInverted = detail?.Site?.ChatColorThemeInverted,
+                SiteCustomizeDomain = detail?.Site?.CustomizeDomain,
+                SiteCopyright = detail?.Site?.Copyright,
+                SitePrivacyPolicy = detail?.Site?.PrivacyPolicy,
+                SiteCustomDisclaimer = detail?.Site?.CustomDisclaimer,
+                SiteCustomizeTokenStrategy = detail?.Site?.CustomizeTokenStrategy,
+                SitePromptPublic = detail?.Site?.PromptPublic,
+                SiteAppBaseUrl = detail?.Site?.AppBaseUrl,
+                SiteShowWorkflowSteps = detail?.Site?.ShowWorkflowSteps,
+                SiteUseIconAsAnswerIcon = detail?.Site?.UseIconAsAnswerIcon,
+                SiteCreatedBy = detail?.Site?.CreatedBy,
+                SiteCreatedAt = detail?.Site?.CreatedAt,
+                SiteUpdatedBy = detail?.Site?.UpdatedBy,
+                SiteUpdatedAt = detail?.Site?.UpdatedAt,
+                ApiBaseUrl = detail?.ApiBaseUrl,
+                DeletedTools = FormatStringArray(detail?.DeletedTools),
                 HasDetail = detail is not null
             });
             await Task.Delay(150);
@@ -182,6 +270,8 @@ public static class DifyAppCommand
         Console.WriteLine($"已将 {rows.Count} 条记录导出到 {csvPath}");
     }
 
+
+    // 获取首页的加载左右的智能体 包括 workflow 和 其他应用
     private static async Task<List<ConsoleApiAppsResponse.Types.App>> FetchAllAppsSummaryAsync(DifyApiClient client)
     {
         const int pageSize = 30;
@@ -224,6 +314,11 @@ public static class DifyAppCommand
         return result;
     }
 
+    private static string? MergeTags(ConsoleApiAppsAppidResponse? detail, ConsoleApiAppsResponse.Types.App summary)
+    {
+        return FormatTags(detail?.Tags) ?? FormatTags(summary.Tags);
+    }
+
     private static string? FormatTags(System.Text.Json.JsonElement[]? tags)
     {
         if (tags is not { Length: > 0 })
@@ -232,19 +327,117 @@ public static class DifyAppCommand
         var list = new List<string>(tags.Length);
         foreach (var tag in tags)
         {
-            if (tag.ValueKind == System.Text.Json.JsonValueKind.String)
+            switch (tag.ValueKind)
             {
-                var value = tag.GetString();
-                if (!string.IsNullOrWhiteSpace(value))
-                    list.Add(value);
-            }
-            else
-            {
-                list.Add(tag.GetRawText());
+                case System.Text.Json.JsonValueKind.String:
+                    {
+                        var value = tag.GetString();
+                        if (!string.IsNullOrWhiteSpace(value))
+                            list.Add(value);
+                        break;
+                    }
+
+                case System.Text.Json.JsonValueKind.Object:
+                    {
+                        if (tag.TryGetProperty("name", out var nameElement))
+                        {
+                            var nameValue = nameElement.GetString();
+                            if (!string.IsNullOrWhiteSpace(nameValue))
+                            {
+                                list.Add(nameValue);
+                                break;
+                            }
+                        }
+
+                        var raw = tag.GetRawText();
+                        if (!string.IsNullOrWhiteSpace(raw))
+                            list.Add(raw);
+                        break;
+                    }
+
+                default:
+                    {
+                        var raw = tag.GetRawText();
+                        if (!string.IsNullOrWhiteSpace(raw))
+                            list.Add(raw);
+                        break;
+                    }
             }
         }
 
         return list.Count == 0 ? null : string.Join('|', list);
+    }
+
+    private static string? FormatStringArray(string[]? values)
+    {
+        if (values is not { Length: > 0 })
+            return null;
+        var list = values
+            .Where(v => !string.IsNullOrWhiteSpace(v))
+            .ToArray();
+        return list.Length == 0 ? null : string.Join('|', list);
+    }
+
+    private static string? ResolveModelConfig(ConsoleApiAppsAppidResponse? detail, ConsoleApiAppsResponse.Types.App summary)
+    {
+        if (detail?.ModelConfig is System.Text.Json.JsonElement detailElement)
+            return detailElement.GetRawText();
+
+        return summary.ModelConfig.HasValue ? summary.ModelConfig.Value.GetRawText() : null;
+    }
+
+    private static async Task LogDetailFetchErrorAsync(Exception ex)
+    {
+        switch (ex)
+        {
+            case FlurlParsingException parsingEx:
+                await LogFlurlExceptionAsync(parsingEx);
+                break;
+            case FlurlHttpException httpEx:
+                await LogFlurlExceptionAsync(httpEx);
+                break;
+            default:
+                Console.Error.WriteLine(ex);
+                break;
+        }
+    }
+
+    private static async Task LogFlurlExceptionAsync(FlurlHttpException ex)
+    {
+        Console.Error.WriteLine($"Flurl Exception: {ex.GetType().Name}: {ex.Message}");
+        if (ex.InnerException is not null)
+        {
+            Console.Error.WriteLine($"Inner Exception: {ex.InnerException.GetType().Name}: {ex.InnerException.Message}");
+        }
+
+        var status = ex.Call?.Response?.StatusCode;
+        if (status.HasValue)
+        {
+            Console.Error.WriteLine($"HTTP Status: {status.Value}");
+        }
+
+        if (ex.Call?.Request != null)
+        {
+            Console.Error.WriteLine($"Request: {ex.Call.Request.Verb} {ex.Call.Request.Url}");
+        }
+
+        if (ex.Call?.Response is not null)
+        {
+            string body;
+            try
+            {
+                body = await ex.Call.Response.GetStringAsync();
+            }
+            catch (Exception bodyEx)
+            {
+                body = $"<读取响应体失败: {bodyEx.Message}>";
+            }
+
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                Console.Error.WriteLine($"Response Body: {body}");
+            }
+        }
     }
 
     #endregion
@@ -267,7 +460,7 @@ public static class DifyAppCommand
 
     private static async Task<string?> SelectAppFromListAsync(DifyApiClient client)
     {
-        var listRequest = new ConsoleApiAppsRequest { Page = 1, Limit = 100 };
+        var listRequest = new ConsoleApiAppsRequest { Page = 1, Limit = 30 };
         var listResponse = await client.ExecuteConsoleApiAppsAsync(listRequest);
 
         if (listResponse.Data == null || listResponse.Data.Length == 0)
@@ -302,13 +495,56 @@ public static class DifyAppCommand
     {
         public string AppId { get; init; } = string.Empty;
         public string? Name { get; init; }
-        public string? SummaryMode { get; init; }
-        public string? DetailMode { get; init; }
-        public string? SummaryDescription { get; init; }
-        public string? DetailDescription { get; init; }
+        public string? Mode { get; init; }
+        public string? Description { get; init; }
         public string? IconType { get; init; }
+        public string? Icon { get; init; }
+        public string? IconBackground { get; init; }
         public string? IconUrl { get; init; }
         public string? Tags { get; init; }
+        public int? MaxActiveRequests { get; init; }
+        public string? ModelConfig { get; init; }
+        public string? WorkflowId { get; init; }
+        public string? WorkflowCreatedBy { get; init; }
+        public long? WorkflowCreatedAt { get; init; }
+        public string? WorkflowUpdatedBy { get; init; }
+        public long? WorkflowUpdatedAt { get; init; }
+        public bool? UseIconAsAnswerIcon { get; init; }
+        public string? CreatedBy { get; init; }
+        public long? CreatedAt { get; init; }
+        public string? UpdatedBy { get; init; }
+        public long? UpdatedAt { get; init; }
+        public string? AccessMode { get; init; }
+        public string? CreateUserName { get; init; }
+        public string? AuthorName { get; init; }
+        public bool? EnableSite { get; init; }
+        public bool? EnableApi { get; init; }
+        public string? SiteAccessToken { get; init; }
+        public string? SiteCode { get; init; }
+        public string? SiteTitle { get; init; }
+        public string? SiteIconType { get; init; }
+        public string? SiteIcon { get; init; }
+        public string? SiteIconBackground { get; init; }
+        public string? SiteIconUrl { get; init; }
+        public string? SiteDescription { get; init; }
+        public string? SiteDefaultLanguage { get; init; }
+        public string? SiteChatColorTheme { get; init; }
+        public bool? SiteChatColorThemeInverted { get; init; }
+        public string? SiteCustomizeDomain { get; init; }
+        public string? SiteCopyright { get; init; }
+        public string? SitePrivacyPolicy { get; init; }
+        public string? SiteCustomDisclaimer { get; init; }
+        public string? SiteCustomizeTokenStrategy { get; init; }
+        public bool? SitePromptPublic { get; init; }
+        public string? SiteAppBaseUrl { get; init; }
+        public bool? SiteShowWorkflowSteps { get; init; }
+        public bool? SiteUseIconAsAnswerIcon { get; init; }
+        public string? SiteCreatedBy { get; init; }
+        public long? SiteCreatedAt { get; init; }
+        public string? SiteUpdatedBy { get; init; }
+        public long? SiteUpdatedAt { get; init; }
+        public string? ApiBaseUrl { get; init; }
+        public string? DeletedTools { get; init; }
         public bool HasDetail { get; init; }
     }
 

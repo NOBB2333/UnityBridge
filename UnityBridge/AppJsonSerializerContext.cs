@@ -20,6 +20,13 @@ namespace UnityBridge;
 [JsonSerializable(typeof(ConsoleApiAppsAppidApikeysCreateResponse))]
 [JsonSerializable(typeof(ConsoleApiAppsAppidApikeysKeyidRequest))]
 [JsonSerializable(typeof(ConsoleApiAppsAppidApikeysKeyidResponse))]
+[JsonSerializable(typeof(ConsoleApiAppsAppidWorkflowsPublishRequest))]
+[JsonSerializable(typeof(ConsoleApiAppsAppidWorkflowsPublishResponse))]
+[JsonSerializable(typeof(ConsoleApiAppsAppidWorkflowsPublishGetRequest))]
+[JsonSerializable(typeof(ConsoleApiAppsAppidWorkflowsPublishGetResponse))]
+[JsonSerializable(typeof(ConsoleApiAppsResponse.Types.App.WorkflowInfo), TypeInfoPropertyName = "ConsoleApiAppsResponseAppWorkflowInfo")]
+[JsonSerializable(typeof(ConsoleApiAppsAppidResponse.WorkflowInfo), TypeInfoPropertyName = "ConsoleApiAppsAppidWorkflowInfo")]
+[JsonSerializable(typeof(ConsoleApiAppsAppidResponse.SiteInfo))]
 [JsonSourceGenerationOptions(
     PropertyNamingPolicy = JsonKnownNamingPolicy.CamelCase,
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,

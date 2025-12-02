@@ -1,0 +1,324 @@
+发布工作流
+
+curl 'http://192.168.113.44:88/console/api/apps/89ed1f0a-113f-4a37-abad-84d0ae18e845/workflows/publish' \
+  -H 'Accept: */*' \
+  -H 'Accept-Language: zh-CN,zh;q=0.9' \
+  -H 'Connection: keep-alive' \
+  -b 'locale=en-US' \
+  -H 'Origin: http://192.168.113.44:88' \
+  -H 'Referer: http://192.168.113.44:88/app/89ed1f0a-113f-4a37-abad-84d0ae18e845/workflow' \
+  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36' \
+  -H 'authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzYzOGQxZjYtNmM5Zi00OGEwLTk5Y2YtNDY4NzI5MjcyMDM4IiwiZXhwIjoxNzY0NjU3MDM2LCJpc3MiOiJTRUxGX0hPU1RFRCIsInN1YiI6IkNvbnNvbGUgQVBJIFBhc3Nwb3J0In0.9GYSHCpJR6QM5HHUQ3cMhRkKn-Ixsut3RPrOxbpCfws' \
+  -H 'content-type: application/json' \
+  --data-raw '{"marked_name":"","marked_comment":""}' \
+  --insecure
+
+
+
+{"result": "success", "created_at": 1764654929}
+
+
+同时这个接口也是支持get的 get 会获得整个图表的分布样式结构，  这里不做对应具体 response了， 弄个dict 自己去看吧
+curl 'http://192.168.113.44:88/console/api/apps/89ed1f0a-113f-4a37-abad-84d0ae18e845/workflows/publish' \
+  -H 'Accept: */*' \
+  -H 'Accept-Language: zh-CN,zh;q=0.9' \
+  -H 'Connection: keep-alive' \
+  -b 'locale=en-US' \
+  -H 'Referer: http://192.168.113.44:88/app/89ed1f0a-113f-4a37-abad-84d0ae18e845/workflow' \
+  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36' \
+  -H 'authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzYzOGQxZjYtNmM5Zi00OGEwLTk5Y2YtNDY4NzI5MjcyMDM4IiwiZXhwIjoxNzY0NjU3MDM2LCJpc3MiOiJTRUxGX0hPU1RFRCIsInN1YiI6IkNvbnNvbGUgQVBJIFBhc3Nwb3J0In0.9GYSHCpJR6QM5HHUQ3cMhRkKn-Ixsut3RPrOxbpCfws' \
+  -H 'content-type: application/json' \
+  --insecure
+
+{
+    "id": "67824e3f-bf6d-4d75-a087-2bb9252960c9",
+    "graph": {
+        "nodes": [
+            {
+                "id": "1764654822824",
+                "type": "custom",
+                "data": {
+                    "type": "start",
+                    "title": "Start",
+                    "desc": "",
+                    "variables": [],
+                    "selected": false
+                },
+                "position": {
+                    "x": 80,
+                    "y": 282
+                },
+                "targetPosition": "left",
+                "sourcePosition": "right",
+                "positionAbsolute": {
+                    "x": 80,
+                    "y": 282
+                },
+                "width": 244,
+                "height": 53
+            },
+            {
+                "id": "llm",
+                "type": "custom",
+                "data": {
+                    "type": "llm",
+                    "title": "LLM",
+                    "desc": "",
+                    "variables": [],
+                    "model": {
+                        "provider": "langgenius/openai_api_compatible/openai_api_compatible",
+                        "name": "qwen3-32b",
+                        "mode": "chat",
+                        "completion_params": {
+                            "temperature": 0.7
+                        }
+                    },
+                    "prompt_template": [
+                        {
+                            "role": "system",
+                            "text": "",
+                            "id": "e39c70a9-756f-4589-bd03-e8dde0a05d9a"
+                        }
+                    ],
+                    "context": {
+                        "enabled": false,
+                        "variable_selector": []
+                    },
+                    "vision": {
+                        "enabled": false
+                    },
+                    "memory": {
+                        "window": {
+                            "enabled": false,
+                            "size": 10
+                        },
+                        "query_prompt_template": "{{#sys.query#}}\n\n{{#sys.files#}}",
+                        "role_prefix": {
+                            "user": "",
+                            "assistant": ""
+                        }
+                    },
+                    "selected": false
+                },
+                "position": {
+                    "x": 380,
+                    "y": 282
+                },
+                "targetPosition": "left",
+                "sourcePosition": "right",
+                "positionAbsolute": {
+                    "x": 380,
+                    "y": 282
+                },
+                "width": 244,
+                "height": 89
+            },
+            {
+                "id": "answer",
+                "type": "custom",
+                "data": {
+                    "type": "answer",
+                    "title": "Answer",
+                    "desc": "",
+                    "variables": [],
+                    "answer": "{{#llm.text#}}",
+                    "selected": false
+                },
+                "position": {
+                    "x": 716.7583473599051,
+                    "y": 282
+                },
+                "targetPosition": "left",
+                "sourcePosition": "right",
+                "positionAbsolute": {
+                    "x": 716.7583473599051,
+                    "y": 282
+                },
+                "width": 244,
+                "height": 104,
+                "selected": true
+            }
+        ],
+        "edges": [
+            {
+                "id": "1764654822824-llm",
+                "source": "1764654822824",
+                "sourceHandle": "source",
+                "target": "llm",
+                "targetHandle": "target",
+                "type": "custom",
+                "data": {
+                    "sourceType": "start",
+                    "targetType": "llm"
+                }
+            },
+            {
+                "id": "llm-answer",
+                "source": "llm",
+                "sourceHandle": "source",
+                "target": "answer",
+                "targetHandle": "target",
+                "type": "custom",
+                "data": {
+                    "sourceType": "llm",
+                    "targetType": "answer"
+                }
+            }
+        ],
+        "viewport": {
+            "x": -59.29261992102215,
+            "y": -36.65778227991797,
+            "zoom": 0.8705505632961243
+        }
+    },
+    "features": {
+        "opening_statement": "",
+        "suggested_questions": [],
+        "suggested_questions_after_answer": {
+            "enabled": false
+        },
+        "text_to_speech": {
+            "enabled": false,
+            "voice": "",
+            "language": ""
+        },
+        "speech_to_text": {
+            "enabled": false
+        },
+        "retriever_resource": {
+            "enabled": true
+        },
+        "sensitive_word_avoidance": {
+            "enabled": false
+        },
+        "file_upload": {
+            "image": {
+                "enabled": false,
+                "number_limits": 3,
+                "transfer_methods": [
+                    "local_file",
+                    "remote_url"
+                ]
+            },
+            "enabled": false,
+            "allowed_file_types": [
+                "image"
+            ],
+            "allowed_file_extensions": [
+                ".JPG",
+                ".JPEG",
+                ".PNG",
+                ".GIF",
+                ".WEBP",
+                ".SVG"
+            ],
+            "allowed_file_upload_methods": [
+                "local_file",
+                "remote_url"
+            ],
+            "number_limits": 3,
+            "fileUploadConfig": {
+                "file_size_limit": 15,
+                "batch_count_limit": 5,
+                "image_file_size_limit": 10,
+                "video_file_size_limit": 100,
+                "audio_file_size_limit": 50,
+                "workflow_file_upload_limit": 10
+            }
+        }
+    },
+    "hash": "f6e3d4b9374e99289b1a40fe9423292d3898e824c9af3bed13261991885bff19",
+    "version": "2025-12-02 05:55:29.306971",
+    "marked_name": "",
+    "marked_comment": "",
+    "created_by": {
+        "id": "3638d1f6-6c9f-48a0-99cf-468729272038",
+        "name": "dify-user@sino-bridge.com",
+        "email": "dify-user@sino-bridge.com"
+    },
+    "created_at": 1764654929,
+    "updated_by": null,
+    "updated_at": 1764654929,
+    "tool_published": false,
+    "environment_variables": [],
+    "conversation_variables": []
+}
+
+
+
+
+
+
+
+
+用这个查看发布后的具体信息
+curl 'http://192.168.113.44:88/console/api/apps/89ed1f0a-113f-4a37-abad-84d0ae18e845' \
+  -H 'Accept: */*' \
+  -H 'Accept-Language: zh-CN,zh;q=0.9' \
+  -H 'Connection: keep-alive' \
+  -b 'locale=en-US' \
+  -H 'Referer: http://192.168.113.44:88/app/89ed1f0a-113f-4a37-abad-84d0ae18e845/workflow' \
+  -H 'User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36' \
+  -H 'authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiMzYzOGQxZjYtNmM5Zi00OGEwLTk5Y2YtNDY4NzI5MjcyMDM4IiwiZXhwIjoxNzY0NjU3MDM2LCJpc3MiOiJTRUxGX0hPU1RFRCIsInN1YiI6IkNvbnNvbGUgQVBJIFBhc3Nwb3J0In0.9GYSHCpJR6QM5HHUQ3cMhRkKn-Ixsut3RPrOxbpCfws' \
+  -H 'content-type: application/json' \
+  --insecure
+
+{
+    "id": "89ed1f0a-113f-4a37-abad-84d0ae18e845",
+    "name": "testflow",
+    "description": "",
+    "mode": "advanced-chat",
+    "icon_type": "emoji",
+    "icon": "\ud83e\udd16",
+    "icon_background": "#FFEAD5",
+    "icon_url": null,
+    "enable_site": true,
+    "enable_api": true,
+    "model_config": null,
+    "workflow": {
+        "id": "67824e3f-bf6d-4d75-a087-2bb9252960c9",
+        "created_by": "3638d1f6-6c9f-48a0-99cf-468729272038",
+        "created_at": 1764654929,
+        "updated_by": null,
+        "updated_at": 1764654929
+    },
+    "site": {
+        "access_token": "bWVz9qac8p1oLBfx",
+        "code": "bWVz9qac8p1oLBfx",
+        "title": "testflow",
+        "icon_type": "emoji",
+        "icon": "\ud83e\udd16",
+        "icon_background": "#FFEAD5",
+        "icon_url": null,
+        "description": null,
+        "default_language": "en-US",
+        "chat_color_theme": null,
+        "chat_color_theme_inverted": false,
+        "customize_domain": null,
+        "copyright": null,
+        "privacy_policy": null,
+        "custom_disclaimer": "",
+        "customize_token_strategy": "not_allow",
+        "prompt_public": false,
+        "app_base_url": "http://192.168.113.44",
+        "show_workflow_steps": true,
+        "use_icon_as_answer_icon": false,
+        "created_by": "3638d1f6-6c9f-48a0-99cf-468729272038",
+        "created_at": 1764654823,
+        "updated_by": "3638d1f6-6c9f-48a0-99cf-468729272038",
+        "updated_at": 1764654823
+    },
+    "api_base_url": "http://192.168.113.44/v1",
+    "use_icon_as_answer_icon": false,
+    "created_by": "3638d1f6-6c9f-48a0-99cf-468729272038",
+    "created_at": 1764654822,
+    "updated_by": "3638d1f6-6c9f-48a0-99cf-468729272038",
+    "updated_at": 1764654822,
+    "deleted_tools": [],
+    "access_mode": null
+}
+
+
+
+
+

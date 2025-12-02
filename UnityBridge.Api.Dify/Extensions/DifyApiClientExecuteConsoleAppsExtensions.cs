@@ -115,6 +115,7 @@ public static class DifyApiClientExecuteConsoleAppsExtensions
 
         /// <summary>
         /// <para>异步调用 [POST] /console/api/apps/{app_id}/api-keys 接口。</para>
+        /// <para>该接口不需要请求体，按照控制台行为发送空 Body。</para>
         /// </summary>
         /// <param name="request"></param>
         /// <param name="cancellationToken"></param>
@@ -126,7 +127,8 @@ public static class DifyApiClientExecuteConsoleAppsExtensions
 
             IFlurlRequest flurlRequest = client.CreateFlurlRequest(request, HttpMethod.Post, "console", "api", "apps", request.AppId, "api-keys");
 
-            return await client.SendFlurlRequestAsJsonAsync<ConsoleApiAppsAppidApikeysCreateResponse>(flurlRequest, data: request, cancellationToken: cancellationToken).ConfigureAwait(false);
+            // 按浏览器的 curl 行为，不发送 JSON Body（Content-Length: 0）
+            return await client.SendFlurlRequestAsJsonAsync<ConsoleApiAppsAppidApikeysCreateResponse>(flurlRequest, data: null, cancellationToken: cancellationToken).ConfigureAwait(false);
         }
 
         /// <summary>
@@ -143,6 +145,60 @@ public static class DifyApiClientExecuteConsoleAppsExtensions
             IFlurlRequest flurlRequest = client.CreateFlurlRequest(request, HttpMethod.Delete, "console", "api", "apps", request.AppId, "api-keys", request.KeyId);
 
             return await client.SendFlurlRequestAsJsonAsync<ConsoleApiAppsAppidApikeysKeyidResponse>(flurlRequest, data: null, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// <para>异步调用 [POST] /console/api/apps/{app_id}/workflows/publish 接口。</para>
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<ConsoleApiAppsAppidWorkflowsPublishResponse> ExecuteConsoleApiAppsAppidWorkflowsPublishAsync(ConsoleApiAppsAppidWorkflowsPublishRequest request, CancellationToken cancellationToken = default)
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (request is null) throw new ArgumentNullException(nameof(request));
+
+            IFlurlRequest flurlRequest = client.CreateFlurlRequest(request, HttpMethod.Post, "console", "api", "apps", request.AppId, "workflows", "publish");
+
+            return await client.SendFlurlRequestAsJsonAsync<ConsoleApiAppsAppidWorkflowsPublishResponse>(flurlRequest, data: request, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// <para>异步调用 [GET] /console/api/apps/{app_id}/workflows/publish 接口。</para>
+        /// <para>该接口返回复杂的工作流结构，响应中的 Data 字段包含 JsonElement 以便手动解析。</para>
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<ConsoleApiAppsAppidWorkflowsPublishGetResponse> ExecuteConsoleApiAppsAppidWorkflowsPublishGetAsync(ConsoleApiAppsAppidWorkflowsPublishGetRequest request, CancellationToken cancellationToken = default)
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (request is null) throw new ArgumentNullException(nameof(request));
+
+            IFlurlRequest flurlRequest = client.CreateFlurlRequest(request, HttpMethod.Get, "console", "api", "apps", request.AppId, "workflows", "publish");
+
+            // 特殊处理：该接口返回复杂的工作流结构，需要手动解析
+            using IFlurlResponse flurlResponse = await client.SendFlurlRequestAsync(flurlRequest, null, cancellationToken).ConfigureAwait(false);
+            string text = await flurlResponse.GetStringAsync().ConfigureAwait(false);
+
+            try
+            {
+                // 尝试解析 JSON，使用 JsonSerializer 创建独立的 JsonElement
+                var jsonElement = client.JsonSerializer.Deserialize<System.Text.Json.JsonElement>(text);
+                return new ConsoleApiAppsAppidWorkflowsPublishGetResponse
+                {
+                    Data = jsonElement,
+                    RawText = text
+                };
+            }
+            catch
+            {
+                // 解析失败，返回原始文本（Data 为默认值）
+                return new ConsoleApiAppsAppidWorkflowsPublishGetResponse
+                {
+                    RawText = text
+                };
+            }
         }
     }
 }

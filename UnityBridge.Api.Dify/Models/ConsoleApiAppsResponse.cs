@@ -62,6 +62,93 @@ public class ConsoleApiAppsResponse : DifyApiResponse
             /// </summary>
             [System.Text.Json.Serialization.JsonPropertyName("tags")]
             public System.Text.Json.JsonElement[]? Tags { get; set; }
+
+            /// <summary>
+            /// 获取或设置最大并发请求数。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("max_active_requests")]
+            public int? MaxActiveRequests { get; set; }
+
+            /// <summary>
+            /// 获取或设置模型配置。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("model_config")]
+            public System.Text.Json.JsonElement? ModelConfig { get; set; }
+
+            /// <summary>
+            /// 获取或设置工作流信息。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("workflow")]
+            public WorkflowInfo? Workflow { get; set; }
+
+            /// <summary>
+            /// 获取或设置是否使用图标作为答案图标。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("use_icon_as_answer_icon")]
+            public bool? UseIconAsAnswerIcon { get; set; }
+
+            /// <summary>
+            /// 获取或设置创建者。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("created_by")]
+            public string? CreatedBy { get; set; }
+
+            /// <summary>
+            /// 获取或设置创建时间戳。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("created_at")]
+            public long? CreatedAt { get; set; }
+
+            /// <summary>
+            /// 获取或设置更新者。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("updated_by")]
+            public string? UpdatedBy { get; set; }
+
+            /// <summary>
+            /// 获取或设置更新时间戳。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("updated_at")]
+            public long? UpdatedAt { get; set; }
+
+            /// <summary>
+            /// 获取或设置访问模式。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("access_mode")]
+            public string? AccessMode { get; set; }
+
+            /// <summary>
+            /// 获取或设置创建者姓名。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("create_user_name")]
+            public string? CreateUserName { get; set; }
+
+            /// <summary>
+            /// 获取或设置作者姓名。
+            /// </summary>
+            [System.Text.Json.Serialization.JsonPropertyName("author_name")]
+            public string? AuthorName { get; set; }
+
+            /// <summary>
+            /// 表示工作流信息。
+            /// </summary>
+            public class WorkflowInfo
+            {
+                [System.Text.Json.Serialization.JsonPropertyName("id")]
+                public string? Id { get; set; }
+
+                [System.Text.Json.Serialization.JsonPropertyName("created_by")]
+                public string? CreatedBy { get; set; }
+
+                [System.Text.Json.Serialization.JsonPropertyName("created_at")]
+                public long? CreatedAt { get; set; }
+
+                [System.Text.Json.Serialization.JsonPropertyName("updated_by")]
+                public string? UpdatedBy { get; set; }
+
+                [System.Text.Json.Serialization.JsonPropertyName("updated_at")]
+                public long? UpdatedAt { get; set; }
+            }
         }
     }
 
