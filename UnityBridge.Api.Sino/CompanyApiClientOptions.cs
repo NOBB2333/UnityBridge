@@ -16,7 +16,37 @@ public class CompanyApiClientOptions : CommonClientOptions
     public string Endpoint { get; set; } = CompanyApiEndpoints.DEFAULT;
 
     /// <summary>
-    /// 获取或设置默认 Access Token。
+    /// 获取或设置默认 Token（对应 HTTP 请求头中的 <c>Token</c>）。
     /// </summary>
-    public string AccessToken { get; set; } = default!;
+    public string? Token { get; set; }
+
+    /// <summary>
+    /// 获取或设置默认 Over Token（对应 HTTP 请求头中的 <c>OVERTOKEN</c>）。
+    /// </summary>
+    public string? OverToken { get; set; }
+
+    /// <summary>
+    /// 获取或设置默认 TenantId（对应 HTTP 请求头中的 <c>TenantId</c>）。
+    /// </summary>
+    public string? TenantId { get; set; }
+
+    /// <summary>
+    /// 获取或设置默认 Origin。
+    /// </summary>
+    public string? Origin { get; set; }
+
+    /// <summary>
+    /// 获取或设置默认 Referer。
+    /// </summary>
+    public string? Referer { get; set; }
+
+    /// <summary>
+    /// 获取或设置默认 Accept-Language。
+    /// </summary>
+    public string? AcceptLanguage { get; set; } = "zh-CN,zh;q=0.9";
+
+    /// <summary>
+    /// 获取或设置默认 User-Agent。
+    /// </summary>
+    public string? UserAgent { get; set; } = "UnityBridge.Api.Sino/1.0 (+https://github.com/your-org/unitybridge)";
 }

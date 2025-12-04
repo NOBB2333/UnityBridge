@@ -92,8 +92,10 @@ public static class ConfigManager
     private static readonly Lazy<EndpointOptions> _downloadOptions = new(() => BindSection<EndpointOptions>("Download"));
     private static readonly Lazy<EndpointOptions> _uploadOptions = new(() => BindSection<EndpointOptions>("Upload"));
     private static readonly Lazy<DifyMigrationOptions> _difyMigrationOptions = new(() => BindSection<DifyMigrationOptions>("DifyMigration"));
+    private static readonly Lazy<SionWebAppOptions> _sionWebAppOptions = new(() => BindSection<SionWebAppOptions>("SionWebApp"));
 
     public static EndpointOptions Download => _downloadOptions.Value;
     public static EndpointOptions Upload => _uploadOptions.Value;
     public static DifyMigrationOptions DifyMigration => _difyMigrationOptions.Value;
+    public static SionWebAppOptions SionWebApp => _sionWebAppOptions.Value;
 }

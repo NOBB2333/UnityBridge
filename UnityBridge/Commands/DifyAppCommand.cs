@@ -186,14 +186,49 @@ public static class DifyAppCommand
             Console.WriteLine($"[{index}/{summaries.Count}] 获取应用详情: {summary.Name} ({summary.Id})");
 
             ConsoleApiAppsAppidResponse? detail = null;
+            ConsoleApiAppsAppidApikeysResponse? apiKeys = null;
+            ConsoleApiWorkspacesCurrentToolProviderWorkflowGetResponse? workflowTool = null;
+
             try
             {
+                // 应用详情
                 detail = await client.ExecuteConsoleApiAppsAppidAsync(new ConsoleApiAppsAppidRequest { AppId = summary.Id });
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine($"获取 {summary.Name} ({summary.Id}) 详情失败: {ex.Message}");
                 await LogDetailFetchErrorAsync(ex);
+            }
+
+            try
+            {
+                // 获取该应用下所有 API Key
+                var keyReq = new ConsoleApiAppsAppidApikeysRequest { AppId = summary.Id };
+                apiKeys = await client.ExecuteConsoleApiAppsAppidApikeysAsync(keyReq);
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"获取 {summary.Name} ({summary.Id}) 的 API Key 列表失败: {ex.Message}");
+                await LogDetailFetchErrorAsync(ex);
+            }
+
+            // 如果是工作流应用，获取工作流工具信息
+            var appMode = detail?.Mode ?? summary.Mode;
+            if (string.Equals(appMode, "workflow", StringComparison.OrdinalIgnoreCase))
+            {
+                try
+                {
+                    var workflowToolReq = new ConsoleApiWorkspacesCurrentToolProviderWorkflowGetRequest 
+                    { 
+                        WorkflowAppId = summary.Id 
+                    };
+                    workflowTool = await client.ExecuteConsoleApiWorkspacesCurrentToolProviderWorkflowGetAsync(workflowToolReq);
+                }
+                catch (Exception ex)
+                {
+                    Console.Error.WriteLine($"获取 {summary.Name} ({summary.Id}) 的工作流工具信息失败: {ex.Message}");
+                    await LogDetailFetchErrorAsync(ex);
+                }
             }
 
             rows.Add(new AppMatrixRow
@@ -250,6 +285,12 @@ public static class DifyAppCommand
                 SiteUpdatedAt = detail?.Site?.UpdatedAt,
                 ApiBaseUrl = detail?.ApiBaseUrl,
                 DeletedTools = FormatStringArray(detail?.DeletedTools),
+                ApiKeyIds = FormatApiKeyField(apiKeys, k => k.Id),
+                ApiKeyTokens = FormatApiKeyField(apiKeys, k => k.Token),
+                ApiKeyCreatedAt = FormatApiKeyTimestamp(apiKeys, k => k.CreatedAt, null),
+                ApiKeyLastUsedAt = FormatApiKeyTimestamp(apiKeys, k => k.LastUsedAt, "从未使用"),
+                WorkflowAppId = workflowTool?.WorkflowAppId,
+                WorkflowToolId = workflowTool?.WorkflowToolId,
                 HasDetail = detail is not null
             });
             await Task.Delay(150);
@@ -376,6 +417,44 @@ public static class DifyAppCommand
             .Where(v => !string.IsNullOrWhiteSpace(v))
             .ToArray();
         return list.Length == 0 ? null : string.Join('|', list);
+    }
+
+    private static string? FormatApiKeyField(ConsoleApiAppsAppidApikeysResponse? response, Func<ConsoleApiAppsAppidApikeysResponse.Types.ApiKey, string?> selector)
+    {
+        if (response?.Data is not { Length: > 0 })
+            return null;
+
+        var list = new List<string>(response.Data.Length);
+        foreach (var item in response.Data)
+        {
+            var value = selector(item);
+            if (!string.IsNullOrWhiteSpace(value))
+                list.Add(value);
+        }
+
+        return list.Count == 0 ? null : string.Join('\n', list);
+    }
+
+    private static string? FormatApiKeyTimestamp(ConsoleApiAppsAppidApikeysResponse? response, Func<ConsoleApiAppsAppidApikeysResponse.Types.ApiKey, long?> selector, string? nullPlaceholder)
+    {
+        if (response?.Data is not { Length: > 0 })
+            return null;
+
+        var list = new List<string>(response.Data.Length);
+        foreach (var item in response.Data)
+        {
+            var ts = selector(item);
+            if (ts.HasValue)
+            {
+                list.Add(ts.Value.ToString());
+            }
+            else if (nullPlaceholder is not null)
+            {
+                list.Add(nullPlaceholder);
+            }
+        }
+
+        return list.Count == 0 ? null : string.Join('\n', list);
     }
 
     private static string? ResolveModelConfig(ConsoleApiAppsAppidResponse? detail, ConsoleApiAppsResponse.Types.App summary)
@@ -545,6 +624,12 @@ public static class DifyAppCommand
         public long? SiteUpdatedAt { get; init; }
         public string? ApiBaseUrl { get; init; }
         public string? DeletedTools { get; init; }
+        public string? ApiKeyIds { get; init; }
+        public string? ApiKeyTokens { get; init; }
+        public string? ApiKeyCreatedAt { get; init; }
+        public string? ApiKeyLastUsedAt { get; init; }
+        public string? WorkflowAppId { get; init; }
+        public string? WorkflowToolId { get; init; }
         public bool HasDetail { get; init; }
     }
 

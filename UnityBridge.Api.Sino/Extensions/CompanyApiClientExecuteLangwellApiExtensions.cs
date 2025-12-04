@@ -8,70 +8,123 @@ public static class CompanyApiClientExecuteLangwellApiExtensions
     extension(CompanyApiClient client)
     {
         /// <summary>
-        /// <para>异步调用 [POST] /langwell-api/langwell-ins-server/dify/broker/agent/stream 接口。</para>
+        /// <para>异步调用 [POST] /langwell-api/langwell-ins-server/dify/broker/formData 接口。</para>
         /// </summary>
-        /// <param name="request"></param>
-        /// <param name="cancellationToken"></param>
-        /// <returns></returns>
+        public async Task<LangwellInsServerDifyBrokerFormDataResponse> ExecuteLangwellApiLangwellInsServerDifyBrokerFormDataAsync(LangwellInsServerDifyBrokerFormDataRequest request, CancellationToken cancellationToken = default)
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (request is null) throw new ArgumentNullException(nameof(request));
+
+            bool hasBytes = request.FileBytes is not null;
+            if (!hasBytes && string.IsNullOrEmpty(request.FilePath))
+                throw new ArgumentException("FileBytes or FilePath must be provided.");
+
+            IFlurlRequest flurlRequest = client.CreateFlurlRequest(request, HttpMethod.Post, "langwell-api", "langwell-ins-server", "dify", "broker", "formData");
+
+            using var formContent = new MultipartFormDataContent();
+            string fileName = request.FileName ?? (hasBytes ? "file" : System.IO.Path.GetFileName(request.FilePath!) );
+            string contentType = request.ContentType ?? "application/octet-stream";
+
+            ByteArrayContent fileContent = hasBytes
+                ? new ByteArrayContent(request.FileBytes!)
+                : new ByteArrayContent(System.IO.File.ReadAllBytes(request.FilePath!));
+            fileContent.Headers.ContentType = new System.Net.Http.Headers.MediaTypeHeaderValue(contentType);
+            formContent.Add(fileContent, "file", fileName);
+
+            formContent.Add(new StringContent(request.Path, Encoding.UTF8), "path");
+            formContent.Add(new StringContent(request.AgentId, Encoding.UTF8), "agentId");
+            formContent.Add(new StringContent(request.User, Encoding.UTF8), "user");
+
+            if (!string.IsNullOrEmpty(request.LibraryName))
+                formContent.Add(new StringContent(request.LibraryName, Encoding.UTF8), "libName");
+            if (!string.IsNullOrEmpty(request.LibraryDescription))
+                formContent.Add(new StringContent(request.LibraryDescription, Encoding.UTF8), "libDesc");
+
+            formContent.Add(new StringContent(request.Flag, Encoding.UTF8), "flag");
+
+            return await client.SendFlurlRequestAsync<LangwellInsServerDifyBrokerFormDataResponse>(flurlRequest, formContent, cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// <para>异步调用 [POST] /langwell-api/langwell-ins-server/dify/broker/agent/stream 接口，并以 SSE 流的方式返回事件。</para>
+        /// </summary>
         public async IAsyncEnumerable<AgentStreamEvent> ExecuteLangwellApiLangwellInsServerDifyBrokerAgentStreamAsync(LangwellApiLangwellInsServerDifyBrokerAgentStreamRequest request, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (client is null) throw new ArgumentNullException(nameof(client));
             if (request is null) throw new ArgumentNullException(nameof(request));
 
-            IFlurlRequest flurlRequest = client.CreateFlurlRequest(request, HttpMethod.Post, "langwell-api", "langwell-ins-server", "dify", "broker", "agent", "stream");
+            IFlurlRequest flurlRequest = client.CreateFlurlRequest(request, HttpMethod.Post, "langwell-api", "langwell-ins-server", "dify", "broker", "agent", "stream")
+                .WithHeader("Accept", "text/event-stream");
 
-            using IFlurlResponse flurlResponse = await client.SendFlurlRequestAsync(flurlRequest, new StringContent(client.JsonSerializer.Serialize(request), System.Text.Encoding.UTF8, System.Net.Http.Headers.MediaTypeHeaderValue.Parse("application/json")), cancellationToken).ConfigureAwait(false);
-            
+            using var httpContent = new StringContent(client.JsonSerializer.Serialize(request), Encoding.UTF8, "application/json");
+            using IFlurlResponse flurlResponse = await client.SendFlurlRequestAsync(flurlRequest, httpContent, cancellationToken).ConfigureAwait(false);
+
             using Stream stream = await flurlResponse.GetStreamAsync().ConfigureAwait(false);
             using StreamReader reader = new StreamReader(stream);
 
-            string? line;
-            while ((line = await reader.ReadLineAsync().ConfigureAwait(false)) != null && !cancellationToken.IsCancellationRequested)
+            string? eventName = null;
+            string? eventId = null;
+            StringBuilder? dataBuilder = null;
+
+            while (!cancellationToken.IsCancellationRequested)
             {
-                if (string.IsNullOrWhiteSpace(line))
+                string? line = await reader.ReadLineAsync().ConfigureAwait(false);
+                if (line is null)
+                    break;
+
+                if (string.IsNullOrEmpty(line))
+                {
+                    if (eventName is not null || eventId is not null || dataBuilder is not null)
+                    {
+                        yield return new AgentStreamEvent
+                        {
+                            Event = eventName,
+                            Id = eventId,
+                            Data = dataBuilder?.ToString()
+                        };
+
+                        eventName = null;
+                        eventId = null;
+                        dataBuilder = null;
+                    }
+
+                    continue;
+                }
+
+                if (line.StartsWith(":", StringComparison.Ordinal))
                     continue;
 
-                // 简单的 SSE 解析
-                // 格式通常是:
-                // event: message
-                // data: {...}
-                // 
-                // 或者直接是 data: {...}
-                // 这里我们假设每行都是一个完整的事件或者需要累积
-                // 但为了简化，我们假设 Rust 代码中的 AgentStreamEvent 结构对应的是 SSE 的 data 部分被解析后的结果
-                // 或者整个 SSE 消息被解析为一个对象
-                
-                // 根据 Rust 代码：
-                // pub struct AgentStreamEvent {
-                //     pub event: Option<String>,
-                //     pub data: Option<String>,
-                //     pub id: Option<String>,
-                // }
-                // 这看起来像是直接解析 SSE 的每一行，或者是解析 SSE 的一个完整块
-                
-                // 如果返回的是标准的 SSE 格式：
-                // data: {"event": "message", "answer": "hello", ...}
-                
-                // 我们尝试解析每一行
-                if (line.StartsWith("data:"))
+                int colonIndex = line.IndexOf(':');
+                string field = colonIndex >= 0 ? line.Substring(0, colonIndex) : line;
+                string value = colonIndex >= 0 ? line.Substring(colonIndex + 1).TrimStart() : string.Empty;
+
+                switch (field)
                 {
-                    string data = line.Substring(5).Trim();
-                    // 这里 data 可能是一个 JSON 字符串，也可能只是普通字符串
-                    // 如果 Rust 模型中的 data 是 Option<String>，那么它可能就是原始数据
-                    
-                    // 我们构造一个 AgentStreamEvent
-                    yield return new AgentStreamEvent { Data = data };
+                    case "event":
+                        eventName = value;
+                        break;
+
+                    case "id":
+                        eventId = value;
+                        break;
+
+                    case "data":
+                        dataBuilder ??= new StringBuilder();
+                        if (dataBuilder.Length > 0)
+                            dataBuilder.Append('\n');
+                        dataBuilder.Append(value);
+                        break;
                 }
-                else if (line.StartsWith("event:"))
+            }
+
+            if (eventName is not null || eventId is not null || dataBuilder is not null)
+            {
+                yield return new AgentStreamEvent
                 {
-                    string eventName = line.Substring(6).Trim();
-                    yield return new AgentStreamEvent { Event = eventName };
-                }
-                else if (line.StartsWith("id:"))
-                {
-                    string id = line.Substring(3).Trim();
-                    yield return new AgentStreamEvent { Id = id };
-                }
+                    Event = eventName,
+                    Id = eventId,
+                    Data = dataBuilder?.ToString()
+                };
             }
         }
     }

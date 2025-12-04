@@ -56,13 +56,34 @@ public class CompanyApiClient : CommonClientBase, ICommonClient
     {
         IFlurlRequest flurlRequest = base.CreateFlurlRequest(request, httpMethod, urlSegments);
 
-        if (request.AccessToken is not null)
+        static bool HasValue(string? value) => !string.IsNullOrWhiteSpace(value);
+
+        void ApplyHeader(string name, string? value)
         {
-            flurlRequest.WithHeader("Authorization", $"Bearer {request.AccessToken}");
+            if (HasValue(value))
+            {
+                flurlRequest.WithHeader(name, value);
+            }
         }
-        else if (Credentials.AccessToken is not null)
+
+        ApplyHeader("Accept", "application/json, text/plain, */*");
+        ApplyHeader("Token", request.Token ?? Credentials.Token);
+        ApplyHeader("OVERTOKEN", request.OverToken ?? Credentials.OverToken);
+        ApplyHeader("TenantId", request.TenantId ?? Credentials.TenantId);
+        ApplyHeader("Origin", request.Origin ?? ClientOptions.Origin);
+        ApplyHeader("Referer", request.Referer ?? ClientOptions.Referer);
+        ApplyHeader("Accept-Language", request.AcceptLanguage ?? ClientOptions.AcceptLanguage);
+        ApplyHeader("User-Agent", request.UserAgent ?? ClientOptions.UserAgent);
+
+        if (request.ExtraHeaders is not null)
         {
-            flurlRequest.WithHeader("Authorization", $"Bearer {Credentials.AccessToken}");
+            foreach (var header in request.ExtraHeaders)
+            {
+                if (!string.IsNullOrWhiteSpace(header.Key))
+                {
+                    flurlRequest.WithHeader(header.Key, header.Value);
+                }
+            }
         }
 
         return flurlRequest;

@@ -200,5 +200,40 @@ public static class DifyApiClientExecuteConsoleAppsExtensions
                 };
             }
         }
+
+        /// <summary>
+        /// <para>异步调用 [POST] /console/api/workspaces/current/tool-provider/workflow/create 接口。</para>
+        /// <para>创建工作流工具提供者。</para>
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<ConsoleApiWorkspacesCurrentToolProviderWorkflowCreateResponse> ExecuteConsoleApiWorkspacesCurrentToolProviderWorkflowCreateAsync(ConsoleApiWorkspacesCurrentToolProviderWorkflowCreateRequest request, CancellationToken cancellationToken = default)
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (request is null) throw new ArgumentNullException(nameof(request));
+
+            IFlurlRequest flurlRequest = client.CreateFlurlRequest(request, HttpMethod.Post, "console", "api", "workspaces", "current", "tool-provider", "workflow", "create");
+
+            return await client.SendFlurlRequestAsJsonAsync<ConsoleApiWorkspacesCurrentToolProviderWorkflowCreateResponse>(flurlRequest, data: request, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
+
+        /// <summary>
+        /// <para>异步调用 [GET] /console/api/workspaces/current/tool-provider/workflow/get 接口。</para>
+        /// <para>获取工作流工具提供者信息。</para>
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="cancellationToken"></param>
+        /// <returns></returns>
+        public async Task<ConsoleApiWorkspacesCurrentToolProviderWorkflowGetResponse> ExecuteConsoleApiWorkspacesCurrentToolProviderWorkflowGetAsync(ConsoleApiWorkspacesCurrentToolProviderWorkflowGetRequest request, CancellationToken cancellationToken = default)
+        {
+            if (client is null) throw new ArgumentNullException(nameof(client));
+            if (request is null) throw new ArgumentNullException(nameof(request));
+
+            IFlurlRequest flurlRequest = client.CreateFlurlRequest(request, HttpMethod.Get, "console", "api", "workspaces", "current", "tool-provider", "workflow", "get")
+                .SetQueryParam("workflow_app_id", request.WorkflowAppId);
+
+            return await client.SendFlurlRequestAsJsonAsync<ConsoleApiWorkspacesCurrentToolProviderWorkflowGetResponse>(flurlRequest, data: null, cancellationToken: cancellationToken).ConfigureAwait(false);
+        }
     }
 }

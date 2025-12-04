@@ -1,0 +1,18 @@
+{
+  "Host": {
+    "BaseUrl": "http://192.168.113.44:90",
+    "Headers": {
+      "Accept": "application/json, text/plain, */*",
+      "Accept-Language": "zh-CN,zh;q=0.9",
+      "Connection": "keep-alive",
+      "Content-Type": "application/json",
+      "OVERTOKEN": "170375c3-4886-4e86-a0e3-0b55636922cb",
+      "Origin": "http://192.168.113.67:30019",
+      "Referer": "http://192.168.113.67:30019/copilot-web-app/chat",
+      "TenantId": "1",
+      "Token": "170375c3-4886-4e86-a0e3-0b55636922cb",
+      "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36",
+      "Cookie": "Hm_lvt_b7fd400b2e66412997802961d8148bce=1762918649; HMACCOUNT=6DFF27950CC6A59D; Hm_lpvt_b7fd400b2e66412997802961d8148bce=1763426209; Token=3327f9e2-4617-4357-b0a5-3202ff2ed4a2"
+    }
+  }
+}

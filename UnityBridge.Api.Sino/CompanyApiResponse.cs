@@ -16,8 +16,14 @@ public abstract class CompanyApiResponse : CommonResponseBase, ICommonResponse
     /// <summary>
     /// 获取或设置错误描述。
     /// </summary>
-    [System.Text.Json.Serialization.JsonPropertyName("message")]
+    [System.Text.Json.Serialization.JsonPropertyName("msg")]
     public virtual string? ErrorMessage { get; set; }
+
+    /// <summary>
+    /// 获取或设置 TraceId。
+    /// </summary>
+    [System.Text.Json.Serialization.JsonPropertyName("traceld")]
+    public virtual string? TraceId { get; set; }
 
     /// <summary>
     /// 获取一个值，该值指示调用 API 是否成功。

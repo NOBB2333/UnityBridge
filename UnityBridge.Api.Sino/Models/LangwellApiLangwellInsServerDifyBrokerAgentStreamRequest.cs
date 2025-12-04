@@ -9,6 +9,30 @@ public class LangwellApiLangwellInsServerDifyBrokerAgentStreamRequest : CompanyA
     {
         public class DifyJsonData
         {
+            public class Types
+            {
+                public class FileItem
+                {
+                    /// <summary>
+                    /// 获取或设置文件类型。
+                    /// </summary>
+                    [System.Text.Json.Serialization.JsonPropertyName("type")]
+                    public string? Type { get; set; }
+
+                    /// <summary>
+                    /// 获取或设置文件传输方式。
+                    /// </summary>
+                    [System.Text.Json.Serialization.JsonPropertyName("transfer_method")]
+                    public string? TransferMethod { get; set; }
+
+                    /// <summary>
+                    /// 获取或设置上传后的文件 ID。
+                    /// </summary>
+                    [System.Text.Json.Serialization.JsonPropertyName("upload_file_id")]
+                    public string? UploadFileId { get; set; }
+                }
+            }
+
             /// <summary>
             /// 获取或设置输入数据。
             /// </summary>
@@ -19,7 +43,7 @@ public class LangwellApiLangwellInsServerDifyBrokerAgentStreamRequest : CompanyA
             /// 获取或设置文件列表。
             /// </summary>
             [System.Text.Json.Serialization.JsonPropertyName("files")]
-            public string[]? Files { get; set; }
+            public IList<Types.FileItem>? Files { get; set; }
 
             /// <summary>
             /// 获取或设置响应模式。
@@ -56,25 +80,25 @@ public class LangwellApiLangwellInsServerDifyBrokerAgentStreamRequest : CompanyA
     /// <summary>
     /// 获取或设置实例 ID。
     /// </summary>
-    [System.Text.Json.Serialization.JsonPropertyName("ins_id")]
+    [System.Text.Json.Serialization.JsonPropertyName("insId")]
     public string InsId { get; set; } = string.Empty;
 
     /// <summary>
     /// 获取或设置业务类型。
     /// </summary>
-    [System.Text.Json.Serialization.JsonPropertyName("biz_type")]
+    [System.Text.Json.Serialization.JsonPropertyName("bizType")]
     public string BizType { get; set; } = string.Empty;
 
     /// <summary>
     /// 获取或设置业务 ID。
     /// </summary>
-    [System.Text.Json.Serialization.JsonPropertyName("biz_id")]
+    [System.Text.Json.Serialization.JsonPropertyName("bizId")]
     public string BizId { get; set; } = string.Empty;
 
     /// <summary>
     /// 获取或设置 Agent ID。
     /// </summary>
-    [System.Text.Json.Serialization.JsonPropertyName("agent_id")]
+    [System.Text.Json.Serialization.JsonPropertyName("agentId")]
     public string AgentId { get; set; } = string.Empty;
 
     /// <summary>

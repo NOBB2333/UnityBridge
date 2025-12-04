@@ -7,6 +7,7 @@ namespace UnityBridge.Options;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(EndpointOptions))]
 [JsonSerializable(typeof(DifyMigrationOptions))]
+[JsonSerializable(typeof(SionWebAppOptions))]
 public partial class ConfigJsonSerializerContext : JsonSerializerContext
 {
 }
