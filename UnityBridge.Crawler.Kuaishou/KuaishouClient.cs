@@ -36,13 +36,24 @@ public class KuaishouClient : CrawlerClientBase
     /// 初始化快手客户端。
     /// </summary>
     public KuaishouClient(KuaishouClientOptions options, AccountPoolManager? accountPool = null)
-        : base(options)
+        : base(options, jsonOptions: CreateAotJsonOptions())
     {
         ClientOptions = options ?? throw new ArgumentNullException(nameof(options));
         _accountPool = accountPool;
 
         FlurlClient.BaseUrl = options.Endpoint ?? KuaishouEndpoints.API;
         FlurlClient.WithTimeout(options.Timeout <= 0 ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(options.Timeout));
+    }
+
+    private static JsonSerializerOptions CreateAotJsonOptions()
+    {
+        return new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = false,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            TypeInfoResolver = KuaishouJsonSerializerContext.Default
+        };
     }
 
     /// <summary>

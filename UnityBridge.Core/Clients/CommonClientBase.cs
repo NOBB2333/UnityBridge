@@ -215,7 +215,12 @@ public abstract class CommonClientBase
         if (result is CommonResponseBase responseBase)
         {
             responseBase.RawStatus = flurlResponse.StatusCode;
-            responseBase.RawHeaders = flurlResponse.Headers.ToDictionary(k => k.Name, v => v.Value);
+            responseBase.RawHeaders = flurlResponse.Headers
+                .GroupBy(h => h.Name, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => string.Join(", ", g.Select(x => x.Value).Where(v => !string.IsNullOrWhiteSpace(v))),
+                    StringComparer.OrdinalIgnoreCase);
             // Flurl 4.0: GetBytesAsync() returns byte[]
             // Note: GetJsonAsync might have already consumed the stream depending on implementation, 
             // but Flurl usually buffers. However, since we already deserialized, getting bytes might be redundant or fail if stream is closed.

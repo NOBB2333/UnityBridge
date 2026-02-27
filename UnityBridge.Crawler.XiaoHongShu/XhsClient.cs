@@ -41,7 +41,7 @@ public class XhsClient : CrawlerClientBase
     /// <param name="signClient">签名服务客户端。</param>
     /// <param name="accountPool">账号池管理器（可选）。</param>
     public XhsClient(XhsClientOptions options, ISignClient signClient, AccountPoolManager? accountPool = null)
-        : base(options)
+        : base(options, jsonOptions: CreateAotJsonOptions())
     {
         ClientOptions = options ?? throw new ArgumentNullException(nameof(options));
         _signClient = signClient ?? throw new ArgumentNullException(nameof(signClient));
@@ -49,6 +49,17 @@ public class XhsClient : CrawlerClientBase
 
         FlurlClient.BaseUrl = options.Endpoint ?? XhsEndpoints.API;
         FlurlClient.WithTimeout(options.Timeout <= 0 ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(options.Timeout));
+    }
+
+    private static JsonSerializerOptions CreateAotJsonOptions()
+    {
+        return new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = false,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            TypeInfoResolver = XhsJsonSerializerContext.Default
+        };
     }
 
     /// <summary>

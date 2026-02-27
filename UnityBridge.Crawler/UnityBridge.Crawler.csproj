@@ -64,6 +64,7 @@
     <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.2" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.2" />
+    <PackageReference Include="QRCoder" Version="1.6.0" />
     <!-- SqlSugar 依赖由 UnityBridge.Crawler.Core 统一提供 -->
     
     <!-- 显式保留需要的程序集，防止被裁剪 -->

@@ -37,7 +37,7 @@ public class DouyinClient : CrawlerClientBase
     /// 初始化抖音客户端。
     /// </summary>
     public DouyinClient(DouyinClientOptions options, ISignClient signClient, AccountPoolManager? accountPool = null)
-        : base(options)
+        : base(options, jsonOptions: CreateAotJsonOptions())
     {
         ClientOptions = options ?? throw new ArgumentNullException(nameof(options));
         _signClient = signClient ?? throw new ArgumentNullException(nameof(signClient));
@@ -45,6 +45,17 @@ public class DouyinClient : CrawlerClientBase
 
         FlurlClient.BaseUrl = options.Endpoint ?? DouyinEndpoints.API;
         FlurlClient.WithTimeout(options.Timeout <= 0 ? Timeout.InfiniteTimeSpan : TimeSpan.FromMilliseconds(options.Timeout));
+    }
+
+    private static JsonSerializerOptions CreateAotJsonOptions()
+    {
+        return new JsonSerializerOptions
+        {
+            DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull,
+            WriteIndented = false,
+            PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+            TypeInfoResolver = DouyinJsonSerializerContext.Default
+        };
     }
 
     /// <summary>
