@@ -4,6 +4,7 @@
     <TargetFramework>net10.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>UnityBridge.Api.Sdk</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,6 +13,14 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\..\UnityBridge.Crawler.BiliBili\UnityBridge.Crawler.BiliBili.csproj" />
+    <ProjectReference Include="..\..\UnityBridge.Crawler.Core\UnityBridge.Crawler.Core.csproj" />
+    <ProjectReference Include="..\..\UnityBridge.Crawler.Douyin\UnityBridge.Crawler.Douyin.csproj" />
+    <ProjectReference Include="..\..\UnityBridge.Crawler.Kuaishou\UnityBridge.Crawler.Kuaishou.csproj" />
+    <ProjectReference Include="..\..\UnityBridge.Crawler.Tieba\UnityBridge.Crawler.Tieba.csproj" />
+    <ProjectReference Include="..\..\UnityBridge.Crawler.Weibo\UnityBridge.Crawler.Weibo.csproj" />
+    <ProjectReference Include="..\..\UnityBridge.Crawler.XiaoHongShu\UnityBridge.Crawler.XiaoHongShu.csproj" />
+    <ProjectReference Include="..\..\UnityBridge.Crawler.Zhihu\UnityBridge.Crawler.Zhihu.csproj" />
     <ProjectReference Include="..\UnityBridge.Crawler.BiliBili\UnityBridge.Crawler.BiliBili.csproj" />
     <ProjectReference Include="..\UnityBridge.Crawler.Douyin\UnityBridge.Crawler.Douyin.csproj" />
     <ProjectReference Include="..\UnityBridge.Crawler.Core\UnityBridge.Crawler.Core.csproj" />

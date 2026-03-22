@@ -65,6 +65,7 @@
     </ItemGroup>
 
     <ItemGroup>
+      <ProjectReference Include="..\..\UnityBridge.Tools\UnityBridge.Tools.csproj" />
       <ProjectReference Include="..\UnityBridge.Api.Dify\UnityBridge.Api.Dify.csproj" />
       <ProjectReference Include="..\UnityBridge.Api.Sino\UnityBridge.Api.Sino.csproj" />
       <ProjectReference Include="..\UnityBridge.Core\UnityBridge.Core.csproj" />
