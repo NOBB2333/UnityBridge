@@ -1,0 +1,31 @@
+<Solution>
+  <Configurations>
+    <Platform Name="Any CPU" />
+    <Platform Name="x64" />
+    <Platform Name="x86" />
+  </Configurations>
+  <Folder Name="/Solution Items/">
+    <File Path="compose.yaml" />
+  </Folder>
+  <Folder Name="/Useless/">
+    <Project Path="Useless/UnityBridge.Api.Dify/UnityBridge.Api.Dify.csproj" />
+    <Project Path="Useless/UnityBridge.Api.Sino/UnityBridge.Api.Sino.csproj" />
+    <Project Path="Useless/UnityBridge.Api.Web/UnityBridge.Api.Web.csproj" />
+    <Project Path="Useless/UnityBridge/UnityBridge.csproj" />
+  </Folder>
+  <Project Path="UnityBridge.Core/UnityBridge.Core.csproj" />
+  <Project Path="UnityBridge.Crawler.BiliBili/UnityBridge.Crawler.BiliBili.csproj" />
+  <Project Path="UnityBridge.Crawler.Core/UnityBridge.Crawler.Core.csproj" />
+  <Project Path="UnityBridge.Crawler.Douyin/UnityBridge.Crawler.Douyin.csproj" />
+  <Project Path="UnityBridge.Crawler.Kuaishou/UnityBridge.Crawler.Kuaishou.csproj" />
+  <Project Path="UnityBridge.Crawler.SignServer/UnityBridge.Crawler.SignServer.csproj" />
+  <Project Path="UnityBridge.Crawler.Tieba/UnityBridge.Crawler.Tieba.csproj" />
+  <Project Path="UnityBridge.Crawler.Weibo/UnityBridge.Crawler.Weibo.csproj" />
+  <Project Path="UnityBridge.Crawler.XiaoHongShu/UnityBridge.Crawler.XiaoHongShu.csproj" />
+  <Project Path="UnityBridge.Crawler.Zhihu/UnityBridge.Crawler.Zhihu.csproj" />
+  <Project Path="UnityBridge.Crawler/UnityBridge.Crawler.csproj" />
+  <Project Path="UnityBridge.Db/UnityBridge.Db.csproj" />
+  <Project Path="UnityBridge.Test/UnityBridge.Test.csproj" />
+  <Project Path="UnityBridge.Tools/UnityBridge.Tools.csproj" />
+  <Project Path="UnityBridge.Crawler.Sdk.Generate/UnityBridge.Crawler.Sdk.Generate.csproj" />
+</Solution>

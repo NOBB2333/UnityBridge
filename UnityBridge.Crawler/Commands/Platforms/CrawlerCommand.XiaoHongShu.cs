@@ -5,20 +5,25 @@ using UnityBridge.Crawler.XiaoHongShu.Models;
 
 namespace UnityBridge.Crawler;
 
-public static partial class CrawlerCommand
+[CrawlerPlatform("xhs", "小红书", "xiaohongshu", "小红书")]
+public static class XhsCli
 {
     /// <summary>
     /// 小红书关键词搜索并存储。
     /// </summary>
-    public static async Task XhsSearchAsync(
-        XhsClient client,
-        SqlSugarClient db,
-        string keyword,
-        int maxPages = 10,
-        int delayMinMs = 1000,
-        int delayMaxMs = 3000,
-        CancellationToken ct = default)
+    [CrawlerAction("search", PlatformArgumentIndex = 1, PlatformOptional = true, SupportsAllPlatforms = true, RunInParallelForAll = true)]
+    public static async Task SearchAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("小红书", ctx.Options.Platforms.XiaoHongShu)) return;
+
+        var keyword = ctx.RequirePositional(0, "搜索关键词");
+        var maxPages = ctx.GetIntOption(ctx.Options.MaxPages, "max-pages");
+        var delayMinMs = ctx.Options.DefaultDelay.MinMs;
+        var delayMaxMs = ctx.Options.DefaultDelay.MaxMs;
+        var ct = ctx.CancellationToken;
+        var client = CrawlerFactory.CreateXhsClient(ctx.Options.Platforms.XiaoHongShu.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+
         Console.WriteLine($"[XHS] 开始搜索关键词：{keyword}");
 
         for (int page = 1; page <= maxPages && !ct.IsCancellationRequested; page++)
@@ -123,20 +128,21 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 小红书获取笔记详情。
     /// </summary>
-    public static async Task<XhsNoteCard?> XhsGetNoteDetailAsync(
-        XhsClient client,
-        SqlSugarClient db,
-        string noteId,
-        string? xsecToken = null,
-        CancellationToken ct = default)
+    [CrawlerAction("detail", PlatformArgumentIndex = 0)]
+    public static async Task<XhsNoteCard?> DetailAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("小红书", ctx.Options.Platforms.XiaoHongShu)) return null;
+
+        var noteId = ctx.RequirePositional(1, "内容ID");
+        var xsecToken = ctx.GetOption("xsec-token", "xsec_token");
+        var client = CrawlerFactory.CreateXhsClient(ctx.Options.Platforms.XiaoHongShu.Cookies, ctx.Options.SignServerUrl);
         var request = new XhsNoteDetailRequest
         {
             NoteId = noteId,
             XsecToken = xsecToken
         };
 
-        var response = await client.ExecuteNoteDetailAsync(request, ct);
+        var response = await client.ExecuteNoteDetailAsync(request, ctx.CancellationToken);
 
         if (!response.IsSuccessful() || response.Data?.Items is not { Count: > 0 })
         {
@@ -151,7 +157,7 @@ public static partial class CrawlerCommand
             note.CrawledAt = DateTimeOffset.Now;
             note.NoteUrl = $"https://www.xiaohongshu.com/explore/{noteId}";
 
-            await db.Storageable(note).ExecuteCommandAsync(ct);
+            await ctx.Db.Storageable(note).ExecuteCommandAsync(ctx.CancellationToken);
         }
 
         return note;
@@ -160,14 +166,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 小红书获取笔记评论（含二级）。
     /// </summary>
-    public static async Task XhsGetCommentsAsync(
-        XhsClient client,
-        SqlSugarClient db,
-        string noteId,
-        string? xsecToken = null,
-        bool includeSubComments = true,
-        CancellationToken ct = default)
+    [CrawlerAction("comments", PlatformArgumentIndex = 0)]
+    public static async Task CommentsAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("小红书", ctx.Options.Platforms.XiaoHongShu)) return;
+
+        var noteId = ctx.RequirePositional(1, "内容ID");
+        var xsecToken = ctx.GetOption("xsec-token", "xsec_token");
+        var includeSubComments = ctx.GetBoolOption(true, "include-sub");
+        var client = CrawlerFactory.CreateXhsClient(ctx.Options.Platforms.XiaoHongShu.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         Console.WriteLine($"[XHS] 开始获取评论：{noteId}");
 
         string cursor = string.Empty;
@@ -284,12 +293,15 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 小红书首页流并存储。
     /// </summary>
-    public static async Task XhsGetHomeFeedAsync(
-        XhsClient client,
-        SqlSugarClient db,
-        int count = 20,
-        CancellationToken ct = default)
+    [CrawlerAction("homefeed", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task HomeFeedAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("小红书", ctx.Options.Platforms.XiaoHongShu)) return;
+
+        var count = ctx.GetIntOption(12, "count");
+        var client = CrawlerFactory.CreateXhsClient(ctx.Options.Platforms.XiaoHongShu.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var response = await client.ExecuteHomeFeedAsync(new XhsHomeFeedRequest
         {
             Num = count
@@ -313,14 +325,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 小红书创作者笔记并存储。
     /// </summary>
-    public static async Task XhsGetCreatorNotesAsync(
-        XhsClient client,
-        SqlSugarClient db,
-        string userId,
-        int maxPages = 2,
-        string? xsecToken = null,
-        CancellationToken ct = default)
+    [CrawlerAction("creator", PlatformArgumentIndex = 0)]
+    public static async Task CreatorAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("小红书", ctx.Options.Platforms.XiaoHongShu)) return;
+
+        var userId = ctx.RequirePositional(1, "创作者ID");
+        var maxPages = ctx.GetIntOption(2, "max-pages");
+        var xsecToken = ctx.GetOption("xsec-token", "xsec_token");
+        var client = CrawlerFactory.CreateXhsClient(ctx.Options.Platforms.XiaoHongShu.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         Console.WriteLine($"[XHS] 开始获取创作者内容：{userId}");
 
         var cursor = string.Empty;
@@ -363,16 +378,20 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 小红书登录状态检测。
     /// </summary>
-    public static async Task<bool> XhsLoginCheckAsync(
-        XhsClient client,
-        CancellationToken ct = default)
+    [CrawlerAction("login-check", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task<bool> LoginCheckAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("小红书", ctx.Options.Platforms.XiaoHongShu)) return false;
+
+        var client = CrawlerFactory.CreateXhsClient(ctx.Options.Platforms.XiaoHongShu.Cookies, ctx.Options.SignServerUrl);
         var response = await client.ExecuteHomeFeedAsync(new XhsHomeFeedRequest
         {
             Num = 1
-        }, ct);
+        }, ctx.CancellationToken);
 
-        return response.IsSuccessful();
+        var ok = response.IsSuccessful();
+        Console.WriteLine($"[Login] 小红书: {(ok ? "OK" : "FAIL")}");
+        return ok;
     }
 
     private static XhsNoteCard NormalizeXhsNote(XhsNoteCard note, string? xsecToken)
@@ -410,4 +429,5 @@ public static partial class CrawlerCommand
 
         return note;
     }
+
 }

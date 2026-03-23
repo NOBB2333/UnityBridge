@@ -5,20 +5,25 @@ using UnityBridge.Crawler.Weibo.Models;
 
 namespace UnityBridge.Crawler;
 
-public static partial class CrawlerCommand
+[CrawlerPlatform("weibo", "微博", "wb", "微博")]
+public static class WeiboCli
 {
     /// <summary>
     /// 微博关键词搜索并存储。
     /// </summary>
-    public static async Task WeiboSearchAsync(
-        WeiboClient client,
-        SqlSugarClient db,
-        string keyword,
-        int maxPages = 10,
-        int delayMinMs = 1000,
-        int delayMaxMs = 3000,
-        CancellationToken ct = default)
+    [CrawlerAction("search", PlatformArgumentIndex = 1, PlatformOptional = true, SupportsAllPlatforms = true, RunInParallelForAll = true)]
+    public static async Task SearchAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("微博", ctx.Options.Platforms.Weibo)) return;
+
+        var keyword = ctx.RequirePositional(0, "搜索关键词");
+        var maxPages = ctx.GetIntOption(ctx.Options.MaxPages, "max-pages");
+        var delayMinMs = ctx.Options.DefaultDelay.MinMs;
+        var delayMaxMs = ctx.Options.DefaultDelay.MaxMs;
+        var ct = ctx.CancellationToken;
+        var client = CrawlerFactory.CreateWeiboClient(ctx.Options.Platforms.Weibo.Cookies);
+        var db = ctx.Db;
+
         Console.WriteLine($"[Weibo] 开始搜索关键词：{keyword}");
 
         for (int page = 1; page <= maxPages && !ct.IsCancellationRequested; page++)
@@ -109,15 +114,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 微博详情 HTML。
     /// </summary>
-    public static async Task<string> WeiboGetNoteDetailHtmlAsync(
-        WeiboClient client,
-        string noteId,
-        CancellationToken ct = default)
+    [CrawlerAction("detail", PlatformArgumentIndex = 0)]
+    public static async Task<string> DetailAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("微博", ctx.Options.Platforms.Weibo)) return string.Empty;
+
+        var noteId = ctx.RequirePositional(1, "内容ID");
+        var client = CrawlerFactory.CreateWeiboClient(ctx.Options.Platforms.Weibo.Cookies);
         var html = await client.ExecuteNoteDetailHtmlAsync(new WeiboNoteDetailRequest
         {
             NoteId = noteId
-        }, ct);
+        }, ctx.CancellationToken);
 
         Console.WriteLine($"[Weibo] 详情页面获取成功：{noteId}，HTML 长度 {html.Length}");
         return html;
@@ -126,13 +133,16 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 微博评论并存储。
     /// </summary>
-    public static async Task WeiboGetCommentsAsync(
-        WeiboClient client,
-        SqlSugarClient db,
-        string noteId,
-        int maxPages = 3,
-        CancellationToken ct = default)
+    [CrawlerAction("comments", PlatformArgumentIndex = 0)]
+    public static async Task CommentsAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("微博", ctx.Options.Platforms.Weibo)) return;
+
+        var noteId = ctx.RequirePositional(1, "内容ID");
+        var maxPages = ctx.GetIntOption(3, "max-pages");
+        var client = CrawlerFactory.CreateWeiboClient(ctx.Options.Platforms.Weibo.Cookies);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         long maxId = 0;
         var maxIdType = 0;
         var total = 0;
@@ -178,14 +188,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 微博创作者信息与内容并存储。
     /// </summary>
-    public static async Task WeiboGetCreatorAsync(
-        WeiboClient client,
-        SqlSugarClient db,
-        string creatorId,
-        int maxPages = 2,
-        string? containerId = null,
-        CancellationToken ct = default)
+    [CrawlerAction("creator", PlatformArgumentIndex = 0)]
+    public static async Task CreatorAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("微博", ctx.Options.Platforms.Weibo)) return;
+
+        var creatorId = ctx.RequirePositional(1, "创作者ID");
+        var maxPages = ctx.GetIntOption(2, "max-pages");
+        var containerId = ctx.GetOption("container-id", "container_id");
+        var client = CrawlerFactory.CreateWeiboClient(ctx.Options.Platforms.Weibo.Cookies);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var profile = await client.ExecuteCreatorProfileAsync(new WeiboCreatorProfileRequest
         {
             CreatorId = creatorId
@@ -255,17 +268,21 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 微博登录状态检测。
     /// </summary>
-    public static async Task<bool> WeiboLoginCheckAsync(
-        WeiboClient client,
-        CancellationToken ct = default)
+    [CrawlerAction("login-check", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task<bool> LoginCheckAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("微博", ctx.Options.Platforms.Weibo)) return false;
+
+        var client = CrawlerFactory.CreateWeiboClient(ctx.Options.Platforms.Weibo.Cookies);
         var response = await client.ExecuteSearchAsync(new WeiboSearchRequest
         {
             Keyword = "微博",
             Page = 1
-        }, ct);
+        }, ctx.CancellationToken);
 
-        return response.IsSuccessful();
+        var ok = response.IsSuccessful();
+        Console.WriteLine($"[Login] 微博: {(ok ? "OK" : "FAIL")}");
+        return ok;
     }
 
     private static List<WeiboNote> FlattenWeiboCards(List<WeiboCard> cards)
@@ -316,4 +333,5 @@ public static partial class CrawlerCommand
             note.Avatar = note.User.ProfileImageUrl;
         }
     }
+
 }

@@ -39,7 +39,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityBridge.Db", "UnityBrid
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityBridge.Api.Web", "Useless\UnityBridge.Api.Web\UnityBridge.Api.Web.csproj", "{498A2CBD-879E-4F34-A963-1BA093E209CA}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityBridge.Crawler.Sdk.Generate", "Useless\UnityBridge.Crawler.Sdk.Generate\UnityBridge.Crawler.Sdk.Generate.csproj", "{B13D98B6-9017-4C0A-8AD9-CD5CD62786FF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityBridge.Crawler.Sdk.Generate", "UnityBridge.Crawler.Sdk.Generate\UnityBridge.Crawler.Sdk.Generate.csproj", "{B13D98B6-9017-4C0A-8AD9-CD5CD62786FF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "UnityBridge", "Useless\UnityBridge\UnityBridge.csproj", "{E00E69F4-9454-4EB7-90F9-C51AF9A448B5}"
 EndProject

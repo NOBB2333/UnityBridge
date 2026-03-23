@@ -199,18 +199,22 @@ public abstract class CommonClientBase
     }
 
     /// <summary>
-    /// 
+    /// 将 Flurl HTTP 响应包装为强类型响应对象。
+    /// 先读取原始字节（保留 RawBytes），再反序列化 JSON，同时填充 RawStatus 和 RawHeaders。
+    /// 注意：必须先读字节再反序列化，否则 Flurl 流消费后无法回读。
     /// </summary>
-    /// <typeparam name="T"></typeparam>
-    /// <param name="flurlResponse"></param>
-    /// <param name="cancellationToken"></param>
-    /// <returns></returns>
+    /// <typeparam name="T">响应类型，需继承 <see cref="CommonResponseBase"/> 以获得 Raw* 字段填充。</typeparam>
+    /// <param name="flurlResponse">Flurl 响应对象。</param>
+    /// <param name="cancellationToken">取消令牌。</param>
+    /// <returns>反序列化后的响应对象。</returns>
     public virtual async Task<T> WrapFlurlResponseAsJsonAsync<T>(IFlurlResponse flurlResponse, CancellationToken cancellationToken = default)
         where T : new()
     {
         if (flurlResponse is null) throw new ArgumentNullException(nameof(flurlResponse));
 
-        T result = await flurlResponse.GetJsonAsync<T>().ConfigureAwait(false);
+        var rawBytes = await flurlResponse.GetBytesAsync().ConfigureAwait(false);
+        var jsonString = System.Text.Encoding.UTF8.GetString(rawBytes);
+        T result = FlurlClient.Settings.JsonSerializer.Deserialize<T>(jsonString) ?? new T();
 
         if (result is CommonResponseBase responseBase)
         {
@@ -221,15 +225,7 @@ public abstract class CommonClientBase
                     g => g.Key,
                     g => string.Join(", ", g.Select(x => x.Value).Where(v => !string.IsNullOrWhiteSpace(v))),
                     StringComparer.OrdinalIgnoreCase);
-            // Flurl 4.0: GetBytesAsync() returns byte[]
-            // Note: GetJsonAsync might have already consumed the stream depending on implementation, 
-            // but Flurl usually buffers. However, since we already deserialized, getting bytes might be redundant or fail if stream is closed.
-            // For now, let's try to get bytes if possible, or skip if it's too complex for this refactor.
-            // Actually, SKIT usually populates this.
-            // In Flurl 4, we can access content.
-            // responseBase.RawBytes = ... 
-            // Let's skip RawBytes for now to avoid stream issues, or just set empty.
-            // Or better, read bytes first then deserialize.
+            responseBase.RawBytes = rawBytes;
         }
 
         return result;

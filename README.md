@@ -55,11 +55,11 @@ graph TD
     Dify[Api.Dify] --> Core
     Sino[Api.Sino] --> Core
 
-    %% 聚合 SDK
-    Sdk[UnityBridge.Api.Sdk] --> Core & Dify & Sino & CrawlerCore
-    
+    %% 聚合 SDK（规划中）
+    Sdk["UnityBridge.Api.Sdk (规划中)"] --> Core & Dify & Sino & CrawlerCore
+
     %% 应用层
-    Main[UnityBridge (CLI)] --> Sdk & Tools
+    Main["UnityBridge CLI (已废弃→Useless/)"] --> Sdk & Tools
     SignServer[Crawler.SignServer] --> CrawlerCore
 ```
 
@@ -67,10 +67,10 @@ graph TD
 |------|------|
 | **UnityBridge.Core** | **核心底座**。定义了 `ClientOptions`, `CommonClientBase`, `HttpInterceptor` 等基础架构。 |
 | **UnityBridge.Crawler.Core** | **爬虫核心**。继承自 Core，增加了 `ProxyPool`, `CookieManager`, `SignService` (JS签名算法) 等爬虫专用功能。 |
-| **UnityBridge.Api.Sdk** | **全功能 SDK**。聚合了所有 API 和爬虫能力，推荐第三方开发引用此包。 |
+| **UnityBridge.Api.Sdk** | **全功能 SDK（规划中，尚未实现）**。计划聚合所有 API 和爬虫能力供第三方引用。 |
 | **UnityBridge.Crawler.*** | 各平台的具体爬虫实现（如 `.BiliBili`, `.Douyin`）。 |
-| **UnityBridge.Api.*** | 各 AI 平台的 API 客户端实现（如 `.Dify`, `.Sino`）。 |
-| **UnityBridge** | 命令行主程序 (CLI)。 |
+| **UnityBridge.Api.*** | 各 AI 平台的 API 客户端实现（如 `.Dify`, `.Sino`）。**已废弃，移入 `Useless/` 不再维护**。 |
+| **UnityBridge** | 命令行主程序 (CLI)。**已废弃，移入 `Useless/` 不再维护**，功能已迁移至 `UnityBridge.Crawler`。 |
 | **UnityBridge.Crawler** | 爬虫命令行工具（支持 `search/detail/comments/creator/homefeed/login/login-check`）。 |
 | **UnityBridge.Crawler.SignServer** | 独立的签名计算 Web 服务（不含业务逻辑，仅暴露签名接口）。 |
 | **UnityBridge.Tools** | 通用工具集。 |
@@ -101,7 +101,7 @@ dotnet run --project UnityBridge/UnityBridge.csproj
 启动后可选择：应用导入导出、Key 管理、工作流发布等功能。
 
 ### 3. 在代码中使用 SDK
-引用 `UnityBridge.Api.Sdk` 项目或 DLL。
+直接引用各平台项目（如 `UnityBridge.Crawler.BiliBili`）。`UnityBridge.Api.Sdk` 聚合包尚在规划中。
 
 **初始化爬虫客户端：**
 ```csharp

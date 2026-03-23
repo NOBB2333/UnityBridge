@@ -5,20 +5,24 @@ using UnityBridge.Crawler.Douyin.Models;
 
 namespace UnityBridge.Crawler;
 
-public static partial class CrawlerCommand
+[CrawlerPlatform("douyin", "抖音", "dy", "抖音")]
+public static class DouyinCli
 {
     /// <summary>
     /// 抖音关键词搜索并存储。
     /// </summary>
-    public static async Task DouyinSearchAsync(
-        DouyinClient client,
-        SqlSugarClient db,
-        string keyword,
-        int maxPages = 10,
-        int delayMinMs = 1000,
-        int delayMaxMs = 3000,
-        CancellationToken ct = default)
+    [CrawlerAction("search", PlatformArgumentIndex = 1, PlatformOptional = true, SupportsAllPlatforms = true, RunInParallelForAll = true)]
+    public static async Task SearchAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("抖音", ctx.Options.Platforms.Douyin)) return;
+
+        var keyword = ctx.RequirePositional(0, "搜索关键词");
+        var maxPages = ctx.GetIntOption(ctx.Options.MaxPages, "max-pages");
+        var delayMinMs = ctx.Options.DefaultDelay.MinMs;
+        var delayMaxMs = ctx.Options.DefaultDelay.MaxMs;
+        var client = CrawlerFactory.CreateDouyinClient(ctx.Options.Platforms.Douyin.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         Console.WriteLine($"[Douyin] 开始搜索关键词：{keyword}");
         int offset = 0;
 
@@ -86,16 +90,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 抖音视频详情并存储。
     /// </summary>
-    public static async Task<DouyinAweme?> DouyinGetAwemeDetailAsync(
-        DouyinClient client,
-        SqlSugarClient db,
-        string awemeId,
-        CancellationToken ct = default)
+    [CrawlerAction("detail", PlatformArgumentIndex = 0)]
+    public static async Task<DouyinAweme?> DetailAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("抖音", ctx.Options.Platforms.Douyin)) return null;
+
+        var awemeId = ctx.RequirePositional(1, "内容ID");
+        var client = CrawlerFactory.CreateDouyinClient(ctx.Options.Platforms.Douyin.Cookies, ctx.Options.SignServerUrl);
         var response = await client.ExecuteAwemeDetailAsync(new DouyinAwemeDetailRequest
         {
             AwemeId = awemeId
-        }, ct);
+        }, ctx.CancellationToken);
 
         if (!response.IsSuccessful() || response.AwemeDetail is null)
         {
@@ -105,7 +110,7 @@ public static partial class CrawlerCommand
 
         var aweme = response.AwemeDetail;
         NormalizeDouyinAweme(aweme);
-        await db.Storageable(aweme).ExecuteCommandAsync(ct);
+        await ctx.Db.Storageable(aweme).ExecuteCommandAsync(ctx.CancellationToken);
 
         Console.WriteLine($"[Douyin] 详情成功：{aweme.AwemeId} {aweme.Title}");
         return aweme;
@@ -114,14 +119,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 抖音评论并存储。
     /// </summary>
-    public static async Task DouyinGetCommentsAsync(
-        DouyinClient client,
-        SqlSugarClient db,
-        string awemeId,
-        int maxPages = 3,
-        bool includeSubComments = true,
-        CancellationToken ct = default)
+    [CrawlerAction("comments", PlatformArgumentIndex = 0)]
+    public static async Task CommentsAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("抖音", ctx.Options.Platforms.Douyin)) return;
+
+        var awemeId = ctx.RequirePositional(1, "内容ID");
+        var maxPages = ctx.GetIntOption(3, "max-pages");
+        var includeSubComments = ctx.GetBoolOption(true, "include-sub");
+        var client = CrawlerFactory.CreateDouyinClient(ctx.Options.Platforms.Douyin.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var cursor = 0;
         var total = 0;
 
@@ -167,13 +175,16 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 抖音创作者信息与作品并存储。
     /// </summary>
-    public static async Task DouyinGetCreatorAsync(
-        DouyinClient client,
-        SqlSugarClient db,
-        string secUserId,
-        int maxPages = 2,
-        CancellationToken ct = default)
+    [CrawlerAction("creator", PlatformArgumentIndex = 0)]
+    public static async Task CreatorAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("抖音", ctx.Options.Platforms.Douyin)) return;
+
+        var secUserId = ctx.RequirePositional(1, "创作者ID");
+        var maxPages = ctx.GetIntOption(2, "max-pages");
+        var client = CrawlerFactory.CreateDouyinClient(ctx.Options.Platforms.Douyin.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var profile = await client.ExecuteUserProfileAsync(new DouyinUserProfileRequest
         {
             SecUserId = secUserId
@@ -228,12 +239,15 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 抖音首页推荐并存储。
     /// </summary>
-    public static async Task DouyinGetHomeFeedAsync(
-        DouyinClient client,
-        SqlSugarClient db,
-        int count = 20,
-        CancellationToken ct = default)
+    [CrawlerAction("homefeed", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task HomeFeedAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("抖音", ctx.Options.Platforms.Douyin)) return;
+
+        var count = ctx.GetIntOption(12, "count");
+        var client = CrawlerFactory.CreateDouyinClient(ctx.Options.Platforms.Douyin.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var response = await client.ExecuteHomeFeedAsync(new DouyinHomeFeedRequest
         {
             Count = count
@@ -257,16 +271,20 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 抖音登录状态检测。
     /// </summary>
-    public static async Task<bool> DouyinLoginCheckAsync(
-        DouyinClient client,
-        CancellationToken ct = default)
+    [CrawlerAction("login-check", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task<bool> LoginCheckAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("抖音", ctx.Options.Platforms.Douyin)) return false;
+
+        var client = CrawlerFactory.CreateDouyinClient(ctx.Options.Platforms.Douyin.Cookies, ctx.Options.SignServerUrl);
         var response = await client.ExecuteHomeFeedAsync(new DouyinHomeFeedRequest
         {
             Count = 1
-        }, ct);
+        }, ctx.CancellationToken);
 
-        return response.IsSuccessful();
+        var ok = response.IsSuccessful();
+        Console.WriteLine($"[Login] 抖音: {(ok ? "OK" : "FAIL")}");
+        return ok;
     }
 
     private static async Task DouyinGetSubCommentsAsync(
@@ -338,4 +356,5 @@ public static partial class CrawlerCommand
             comment.Avatar = comment.User.AvatarThumb?.UrlList?.FirstOrDefault();
         }
     }
+
 }

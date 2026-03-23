@@ -16,7 +16,7 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\UnityBridge.Api.Dify\UnityBridge.Api.Dify.csproj" />
+      <ProjectReference Include="..\Useless\UnityBridge.Api.Dify\UnityBridge.Api.Dify.csproj" />
       <ProjectReference Include="..\UnityBridge.Core\UnityBridge.Core.csproj" />
     </ItemGroup>
 

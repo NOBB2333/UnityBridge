@@ -5,20 +5,25 @@ using UnityBridge.Crawler.BiliBili.Models;
 
 namespace UnityBridge.Crawler;
 
-public static partial class CrawlerCommand
+[CrawlerPlatform("bili", "B站", "bilibili", "b站", "哔哩哔哩")]
+public static class BiliCli
 {
     /// <summary>
     /// B站关键词搜索并存储。
     /// </summary>
-    public static async Task BiliSearchAsync(
-        BiliClient client,
-        SqlSugarClient db,
-        string keyword,
-        int maxPages = 10,
-        int delayMinMs = 1000,
-        int delayMaxMs = 3000,
-        CancellationToken ct = default)
+    [CrawlerAction("search", PlatformArgumentIndex = 1, PlatformOptional = true, SupportsAllPlatforms = true, RunInParallelForAll = true)]
+    public static async Task SearchAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("B站", ctx.Options.Platforms.BiliBili)) return;
+
+        var keyword = ctx.RequirePositional(0, "搜索关键词");
+        var maxPages = ctx.GetIntOption(ctx.Options.MaxPages, "max-pages");
+        var delayMinMs = ctx.Options.DefaultDelay.MinMs;
+        var delayMaxMs = ctx.Options.DefaultDelay.MaxMs;
+        var ct = ctx.CancellationToken;
+        var client = CrawlerFactory.CreateBiliClient(ctx.Options.Platforms.BiliBili.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+
         Console.WriteLine($"[Bili] 开始搜索关键词：{keyword}");
 
         for (int page = 1; page <= maxPages && !ct.IsCancellationRequested; page++)
@@ -81,18 +86,28 @@ public static partial class CrawlerCommand
     /// <summary>
     /// B站视频详情并存储。
     /// </summary>
-    public static async Task<BiliVideo?> BiliGetVideoDetailAsync(
-        BiliClient client,
-        SqlSugarClient db,
-        string? aid,
-        string? bvid,
-        CancellationToken ct = default)
+    [CrawlerAction("detail", PlatformArgumentIndex = 0)]
+    public static async Task<BiliVideo?> DetailAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("B站", ctx.Options.Platforms.BiliBili)) return null;
+
+        var contentId = ctx.RequirePositional(1, "内容ID");
+        var aid = ctx.GetOption("aid");
+        var bvid = ctx.GetOption("bvid");
+        if (string.IsNullOrEmpty(aid) && string.IsNullOrEmpty(bvid))
+        {
+            if (contentId.StartsWith("BV", StringComparison.OrdinalIgnoreCase))
+                bvid = contentId;
+            else
+                aid = contentId;
+        }
+
+        var client = CrawlerFactory.CreateBiliClient(ctx.Options.Platforms.BiliBili.Cookies, ctx.Options.SignServerUrl);
         var response = await client.ExecuteVideoDetailAsync(new BiliVideoDetailRequest
         {
             Aid = aid,
             Bvid = bvid
-        }, ct);
+        }, ctx.CancellationToken);
 
         if (!response.IsSuccessful() || response.Data?.View is null)
         {
@@ -102,7 +117,7 @@ public static partial class CrawlerCommand
 
         var video = response.Data.View;
         NormalizeBiliVideo(video);
-        await db.Storageable(video).ExecuteCommandAsync(ct);
+        await ctx.Db.Storageable(video).ExecuteCommandAsync(ctx.CancellationToken);
 
         Console.WriteLine($"[Bili] 详情成功：{video.Bvid ?? video.Aid.ToString()} {video.Title}");
         return video;
@@ -111,14 +126,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// B站评论并存储。
     /// </summary>
-    public static async Task BiliGetCommentsAsync(
-        BiliClient client,
-        SqlSugarClient db,
-        string videoId,
-        int maxPages = 3,
-        bool includeSubComments = true,
-        CancellationToken ct = default)
+    [CrawlerAction("comments", PlatformArgumentIndex = 0)]
+    public static async Task CommentsAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("B站", ctx.Options.Platforms.BiliBili)) return;
+
+        var videoId = ctx.RequirePositional(1, "内容ID");
+        var maxPages = ctx.GetIntOption(3, "max-pages");
+        var includeSubComments = ctx.GetBoolOption(true, "include-sub");
+        var client = CrawlerFactory.CreateBiliClient(ctx.Options.Platforms.BiliBili.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var next = 0;
         var total = 0;
 
@@ -164,13 +182,16 @@ public static partial class CrawlerCommand
     /// <summary>
     /// B站创作者信息与内容并存储。
     /// </summary>
-    public static async Task BiliGetCreatorAsync(
-        BiliClient client,
-        SqlSugarClient db,
-        string mid,
-        int maxPages = 2,
-        CancellationToken ct = default)
+    [CrawlerAction("creator", PlatformArgumentIndex = 0)]
+    public static async Task CreatorAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("B站", ctx.Options.Platforms.BiliBili)) return;
+
+        var mid = ctx.RequirePositional(1, "创作者ID");
+        var maxPages = ctx.GetIntOption(2, "max-pages");
+        var client = CrawlerFactory.CreateBiliClient(ctx.Options.Platforms.BiliBili.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var profile = await client.ExecuteUpInfoAsync(new BiliUpInfoRequest
         {
             Mid = mid
@@ -232,12 +253,15 @@ public static partial class CrawlerCommand
     /// <summary>
     /// B站首页推荐并存储。
     /// </summary>
-    public static async Task BiliGetHomeFeedAsync(
-        BiliClient client,
-        SqlSugarClient db,
-        int pageCount = 12,
-        CancellationToken ct = default)
+    [CrawlerAction("homefeed", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task HomeFeedAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("B站", ctx.Options.Platforms.BiliBili)) return;
+
+        var pageCount = ctx.GetIntOption(12, "count");
+        var client = CrawlerFactory.CreateBiliClient(ctx.Options.Platforms.BiliBili.Cookies, ctx.Options.SignServerUrl);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var response = await client.ExecuteHomeFeedAsync(new BiliHomeFeedRequest
         {
             PageCount = pageCount
@@ -277,16 +301,20 @@ public static partial class CrawlerCommand
     /// <summary>
     /// B站登录状态检测。
     /// </summary>
-    public static async Task<bool> BiliLoginCheckAsync(
-        BiliClient client,
-        CancellationToken ct = default)
+    [CrawlerAction("login-check", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task<bool> LoginCheckAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("B站", ctx.Options.Platforms.BiliBili)) return false;
+
+        var client = CrawlerFactory.CreateBiliClient(ctx.Options.Platforms.BiliBili.Cookies, ctx.Options.SignServerUrl);
         var response = await client.ExecuteHomeFeedAsync(new BiliHomeFeedRequest
         {
             PageCount = 1
-        }, ct);
+        }, ctx.CancellationToken);
 
-        return response.IsSuccessful();
+        var ok = response.IsSuccessful();
+        Console.WriteLine($"[Login] B站: {(ok ? "OK" : "FAIL")}");
+        return ok;
     }
 
     /// <summary>
@@ -603,5 +631,62 @@ public static partial class CrawlerCommand
         }
 
         return string.Join("; ", merged.Select(kv => $"{kv.Key}={kv.Value}"));
+    }
+
+    [CrawlerAction("login", PlatformArgumentIndex = 0)]
+    public static async Task LoginAsync(CrawlerCommandContext ctx)
+    {
+        var method = (ctx.GetOption("method") ?? "qr").Trim().ToLowerInvariant();
+        if (method != "qr")
+        {
+            Console.WriteLine($"[错误] B站当前仅支持 --method qr，收到: {method}");
+            return;
+        }
+
+        var timeout = ctx.GetIntOption(120, "timeout");
+        var pollInterval = ctx.GetIntOption(1, "poll-interval");
+        var writeConfig = ctx.GetBoolOption(true, "write-config");
+        var client = CrawlerFactory.CreateBiliClient(ctx.Options.Platforms.BiliBili.Cookies, ctx.Options.SignServerUrl);
+
+        var session = await BiliCreateQrLoginSessionAsync(client, ctx.CancellationToken);
+        if (session is null)
+        {
+            Console.WriteLine("[Login] 生成二维码失败。");
+            return;
+        }
+
+        Console.WriteLine("[Login] 请使用哔哩哔哩 APP 扫描下方二维码：");
+        CrawlerCommandQrRender.RenderQrCodeToConsole(session.LoginUrl);
+        Console.WriteLine($"[Login] 若终端二维码显示异常，可打开此链接：{session.LoginUrl}");
+
+        var cookies = await BiliWaitForQrLoginAsync(
+            client,
+            session.QrcodeKey,
+            timeout,
+            pollInterval,
+            ctx.CancellationToken);
+
+        if (string.IsNullOrWhiteSpace(cookies))
+        {
+            Console.WriteLine("[Login] 登录失败。");
+            return;
+        }
+
+        ctx.Options.Platforms.BiliBili.Cookies = cookies;
+        Console.WriteLine("[Login] 登录成功，B站 Cookies 已写入内存。");
+
+        if (!writeConfig)
+        {
+            return;
+        }
+
+        if (CrawlerCommandQrRender.TryUpdateCookiesInConfig("BiliBili", cookies, out var path, out var error))
+        {
+            Console.WriteLine($"[Login] 已更新配置文件: {path}");
+        }
+        else
+        {
+            Console.WriteLine($"[Login] 配置写入失败: {error}");
+        }
     }
 }

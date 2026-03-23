@@ -5,20 +5,24 @@ using UnityBridge.Crawler.Kuaishou.Models;
 
 namespace UnityBridge.Crawler;
 
-public static partial class CrawlerCommand
+[CrawlerPlatform("kuaishou", "快手", "ks", "快手")]
+public static class KuaishouCli
 {
     /// <summary>
     /// 快手关键词搜索并存储。
     /// </summary>
-    public static async Task KuaishouSearchAsync(
-        KuaishouClient client,
-        SqlSugarClient db,
-        string keyword,
-        int maxPages = 10,
-        int delayMinMs = 1000,
-        int delayMaxMs = 3000,
-        CancellationToken ct = default)
+    [CrawlerAction("search", PlatformArgumentIndex = 1, PlatformOptional = true, SupportsAllPlatforms = true, RunInParallelForAll = true)]
+    public static async Task SearchAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("快手", ctx.Options.Platforms.Kuaishou)) return;
+
+        var keyword = ctx.RequirePositional(0, "搜索关键词");
+        var maxPages = ctx.GetIntOption(ctx.Options.MaxPages, "max-pages");
+        var delayMinMs = ctx.Options.DefaultDelay.MinMs;
+        var delayMaxMs = ctx.Options.DefaultDelay.MaxMs;
+        var client = CrawlerFactory.CreateKuaishouClient(ctx.Options.Platforms.Kuaishou.Cookies);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         Console.WriteLine($"[Kuaishou] 开始搜索关键词：{keyword}");
         string pcursor = string.Empty;
         string searchSessionId = string.Empty;
@@ -91,16 +95,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 快手视频详情并存储。
     /// </summary>
-    public static async Task<KuaishouVideo?> KuaishouGetVideoDetailAsync(
-        KuaishouClient client,
-        SqlSugarClient db,
-        string photoId,
-        CancellationToken ct = default)
+    [CrawlerAction("detail", PlatformArgumentIndex = 0)]
+    public static async Task<KuaishouVideo?> DetailAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("快手", ctx.Options.Platforms.Kuaishou)) return null;
+
+        var photoId = ctx.RequirePositional(1, "内容ID");
+        var client = CrawlerFactory.CreateKuaishouClient(ctx.Options.Platforms.Kuaishou.Cookies);
         var response = await client.ExecuteVideoDetailAsync(new KuaishouVideoDetailRequest
         {
             PhotoId = photoId
-        }, ct);
+        }, ctx.CancellationToken);
 
         if (!response.IsSuccessful() || response.Data?.VisionVideoDetail is null)
         {
@@ -110,7 +115,7 @@ public static partial class CrawlerCommand
 
         var video = response.Data.VisionVideoDetail;
         NormalizeKuaishouVideo(video);
-        await db.Storageable(video).ExecuteCommandAsync(ct);
+        await ctx.Db.Storageable(video).ExecuteCommandAsync(ctx.CancellationToken);
         Console.WriteLine($"[Kuaishou] 详情成功：{video.PhotoId} {video.Title}");
         return video;
     }
@@ -118,14 +123,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 快手评论并存储。
     /// </summary>
-    public static async Task KuaishouGetCommentsAsync(
-        KuaishouClient client,
-        SqlSugarClient db,
-        string photoId,
-        int maxPages = 3,
-        bool includeSubComments = true,
-        CancellationToken ct = default)
+    [CrawlerAction("comments", PlatformArgumentIndex = 0)]
+    public static async Task CommentsAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("快手", ctx.Options.Platforms.Kuaishou)) return;
+
+        var photoId = ctx.RequirePositional(1, "内容ID");
+        var maxPages = ctx.GetIntOption(3, "max-pages");
+        var includeSubComments = ctx.GetBoolOption(true, "include-sub");
+        var client = CrawlerFactory.CreateKuaishouClient(ctx.Options.Platforms.Kuaishou.Cookies);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var pcursor = string.Empty;
         var total = 0;
 
@@ -169,13 +177,16 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 快手创作者信息与作品并存储。
     /// </summary>
-    public static async Task KuaishouGetCreatorAsync(
-        KuaishouClient client,
-        SqlSugarClient db,
-        string userId,
-        int maxPages = 2,
-        CancellationToken ct = default)
+    [CrawlerAction("creator", PlatformArgumentIndex = 0)]
+    public static async Task CreatorAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("快手", ctx.Options.Platforms.Kuaishou)) return;
+
+        var userId = ctx.RequirePositional(1, "创作者ID");
+        var maxPages = ctx.GetIntOption(2, "max-pages");
+        var client = CrawlerFactory.CreateKuaishouClient(ctx.Options.Platforms.Kuaishou.Cookies);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var profile = await client.ExecuteCreatorProfileAsync(new KuaishouCreatorProfileRequest
         {
             UserId = userId
@@ -233,12 +244,15 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 快手首页流并存储。
     /// </summary>
-    public static async Task KuaishouGetHomeFeedAsync(
-        KuaishouClient client,
-        SqlSugarClient db,
-        int count = 12,
-        CancellationToken ct = default)
+    [CrawlerAction("homefeed", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task HomeFeedAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("快手", ctx.Options.Platforms.Kuaishou)) return;
+
+        var count = ctx.GetIntOption(12, "count");
+        var client = CrawlerFactory.CreateKuaishouClient(ctx.Options.Platforms.Kuaishou.Cookies);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var response = await client.ExecuteHomeFeedAsync(new KuaishouHomeFeedRequest
         {
             HotChannelId = "00"
@@ -267,16 +281,20 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 快手登录状态检测。
     /// </summary>
-    public static async Task<bool> KuaishouLoginCheckAsync(
-        KuaishouClient client,
-        CancellationToken ct = default)
+    [CrawlerAction("login-check", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task<bool> LoginCheckAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("快手", ctx.Options.Platforms.Kuaishou)) return false;
+
+        var client = CrawlerFactory.CreateKuaishouClient(ctx.Options.Platforms.Kuaishou.Cookies);
         var response = await client.ExecuteHomeFeedAsync(new KuaishouHomeFeedRequest
         {
             HotChannelId = "00"
-        }, ct);
+        }, ctx.CancellationToken);
 
-        return response.IsSuccessful();
+        var ok = response.IsSuccessful();
+        Console.WriteLine($"[Login] 快手: {(ok ? "OK" : "FAIL")}");
+        return ok;
     }
 
     private static async Task KuaishouGetSubCommentsAsync(
@@ -343,4 +361,5 @@ public static partial class CrawlerCommand
             creator.Gender = creator.Profile.Gender;
         }
     }
+
 }

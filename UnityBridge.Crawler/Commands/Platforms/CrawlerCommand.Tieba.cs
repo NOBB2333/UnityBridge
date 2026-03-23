@@ -5,17 +5,22 @@ using UnityBridge.Crawler.Tieba.Models;
 
 namespace UnityBridge.Crawler;
 
-public static partial class CrawlerCommand
+[CrawlerPlatform("tieba", "贴吧", "tb", "贴吧")]
+public static class TiebaCli
 {
     /// <summary>
     /// 贴吧关键词搜索（HTML）。
     /// </summary>
-    public static async Task TiebaSearchAsync(
-        TiebaClient client,
-        string keyword,
-        int maxPages = 10,
-        CancellationToken ct = default)
+    [CrawlerAction("search", PlatformArgumentIndex = 1, PlatformOptional = true, SupportsAllPlatforms = true, RunInParallelForAll = true)]
+    public static async Task SearchAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("贴吧", ctx.Options.Platforms.Tieba)) return;
+
+        var keyword = ctx.RequirePositional(0, "搜索关键词");
+        var maxPages = ctx.GetIntOption(ctx.Options.MaxPages, "max-pages");
+        var client = CrawlerFactory.CreateTiebaClient(ctx.Options.Platforms.Tieba.Cookies);
+        var ct = ctx.CancellationToken;
+
         Console.WriteLine($"[Tieba] 开始搜索关键词：{keyword}");
 
         for (var page = 1; page <= maxPages && !ct.IsCancellationRequested; page++)
@@ -41,15 +46,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 贴吧帖子详情（HTML）。
     /// </summary>
-    public static async Task<string> TiebaGetPostDetailHtmlAsync(
-        TiebaClient client,
-        string postId,
-        CancellationToken ct = default)
+    [CrawlerAction("detail", PlatformArgumentIndex = 0)]
+    public static async Task<string> DetailAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("贴吧", ctx.Options.Platforms.Tieba)) return string.Empty;
+
+        var postId = ctx.RequirePositional(1, "内容ID");
+        var client = CrawlerFactory.CreateTiebaClient(ctx.Options.Platforms.Tieba.Cookies);
         var html = await client.ExecutePostDetailHtmlAsync(new TiebaPostDetailRequest
         {
             PostId = postId
-        }, ct);
+        }, ctx.CancellationToken);
 
         Console.WriteLine($"[Tieba] 帖子详情获取成功：{postId}，HTML 长度 {html.Length}");
         return html;
@@ -58,14 +65,17 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 贴吧评论（HTML）。
     /// </summary>
-    public static async Task TiebaGetCommentsHtmlAsync(
-        TiebaClient client,
-        string postId,
-        int page = 1,
-        string? parentCommentId = null,
-        string? tiebaId = null,
-        CancellationToken ct = default)
+    [CrawlerAction("comments", PlatformArgumentIndex = 0)]
+    public static async Task CommentsAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("贴吧", ctx.Options.Platforms.Tieba)) return;
+
+        var postId = ctx.RequirePositional(1, "内容ID");
+        var page = ctx.GetIntOption(1, "page");
+        var parentCommentId = ctx.GetOption("parent-comment-id", "parent_comment_id", "pid");
+        var tiebaId = ctx.GetOption("tieba-id", "tieba_id", "fid");
+        var client = CrawlerFactory.CreateTiebaClient(ctx.Options.Platforms.Tieba.Cookies);
+        var ct = ctx.CancellationToken;
         var html = await client.ExecuteCommentHtmlAsync(new TiebaCommentRequest
         {
             PostId = postId,
@@ -90,13 +100,16 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 贴吧创作者帖子并存储。
     /// </summary>
-    public static async Task TiebaGetCreatorPostsAsync(
-        TiebaClient client,
-        SqlSugarClient db,
-        string userName,
-        int maxPages = 2,
-        CancellationToken ct = default)
+    [CrawlerAction("creator", PlatformArgumentIndex = 0)]
+    public static async Task CreatorAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReady("贴吧", ctx.Options.Platforms.Tieba)) return;
+
+        var userName = ctx.RequirePositional(1, "创作者ID");
+        var maxPages = ctx.GetIntOption(2, "max-pages");
+        var client = CrawlerFactory.CreateTiebaClient(ctx.Options.Platforms.Tieba.Cookies);
+        var db = ctx.Db;
+        var ct = ctx.CancellationToken;
         var total = 0;
         for (var page = 1; page <= maxPages && !ct.IsCancellationRequested; page++)
         {
@@ -138,17 +151,19 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 贴吧吧页（HTML）。
     /// </summary>
-    public static async Task<string> TiebaGetForumHtmlAsync(
-        TiebaClient client,
-        string tiebaName,
-        int pageNum = 0,
-        CancellationToken ct = default)
+    [CrawlerAction("homefeed", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task<string> HomeFeedAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("贴吧", ctx.Options.Platforms.Tieba)) return string.Empty;
+
+        var tiebaName = ctx.GetOption("tieba-name", "tieba_name") ?? "贴吧";
+        var pageNum = ctx.GetIntOption(0, "page");
+        var client = CrawlerFactory.CreateTiebaClient(ctx.Options.Platforms.Tieba.Cookies);
         var html = await client.ExecuteForumHtmlAsync(new TiebaForumRequest
         {
             TiebaName = tiebaName,
             PageNum = pageNum
-        }, ct);
+        }, ctx.CancellationToken);
 
         Console.WriteLine($"[Tieba] 吧页获取成功：{tiebaName} page={pageNum}，HTML 长度 {html.Length}");
         return html;
@@ -157,16 +172,20 @@ public static partial class CrawlerCommand
     /// <summary>
     /// 贴吧登录状态检测。
     /// </summary>
-    public static async Task<bool> TiebaLoginCheckAsync(
-        TiebaClient client,
-        CancellationToken ct = default)
+    [CrawlerAction("login-check", PlatformArgumentIndex = 0, PlatformOptional = true, SupportsAllPlatforms = true)]
+    public static async Task<bool> LoginCheckAsync(CrawlerCommandContext ctx)
     {
+        if (!ctx.EnsureReadyOrSkip("贴吧", ctx.Options.Platforms.Tieba)) return false;
+
+        var client = CrawlerFactory.CreateTiebaClient(ctx.Options.Platforms.Tieba.Cookies);
         var html = await client.ExecuteForumHtmlAsync(new TiebaForumRequest
         {
             TiebaName = "贴吧",
             PageNum = 0
-        }, ct);
+        }, ctx.CancellationToken);
 
-        return !string.IsNullOrWhiteSpace(html);
+        var ok = !string.IsNullOrWhiteSpace(html);
+        Console.WriteLine($"[Login] 贴吧: {(ok ? "OK" : "FAIL")}");
+        return ok;
     }
 }

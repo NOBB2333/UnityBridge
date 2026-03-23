@@ -95,7 +95,17 @@ UnityBridge.Crawler login-check bili
 ## 代码组织
 
 - 命令入口：`Program.cs`
+- CLI 注册：`CrawlerPlatformAttribute.cs` `CrawlerActionAttribute.cs` `CrawlerCliRegistry.cs`
+- CLI 上下文：`CrawlerCommandContext.cs`
 - 命令分平台封装：`Commands/Platforms/CrawlerCommand.<Platform>.cs`
+  每个文件现在直接承载对应平台的 CLI 入口类和平台实现方法
 - 客户端工厂：`CrawlerFactory.cs`
 - 配置模型：`CrawlerOptions.cs`
 - 存储初始化：`CrawlerStorageHelper.cs`
+
+当前 CLI 分发已改为“平台类特性 + 动作方法特性”的自动注册模式：
+
+- 平台级入口类使用 `[CrawlerPlatform(...)]`
+- 动作入口方法使用 `[CrawlerAction(...)]`
+- `Program.cs` 启动时扫描注册，不再手写大量 `switch/if else`
+- 平台 CLI 动作和平台实现方法位于同一个平台类中

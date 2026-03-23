@@ -8,7 +8,6 @@
 
     <ItemGroup>
       <ProjectReference Include="..\..\UnityBridge.Core\UnityBridge.Core.csproj" />
-      <ProjectReference Include="..\UnityBridge.Core\UnityBridge.Core.csproj" />
     </ItemGroup>
 
 </Project>

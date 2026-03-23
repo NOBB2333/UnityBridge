@@ -15,49 +15,37 @@ namespace UnityBridge.Crawler;
 public static class CrawlerStorageHelper
 {
     /// <summary>
-    /// 创建 SQLite 数据库客户端。
+    /// 根据连接串自动识别数据库类型并创建客户端，由 SqlSugar CodeFirst 自动建表。
+    /// 支持 SQLite / MySQL / PostgreSQL / SqlServer / Oracle。
     /// </summary>
-    public static SqlSugarClient CreateSqliteDb(string? dbPath = null)
+    public static SqlSugarClient CreateDb(DatabaseOptions options)
     {
-        // 启用 AOT 模式
         StaticConfig.EnableAot = true;
 
-        var connectionString = $"Data Source={dbPath ?? "crawler.db"};";
+        DbType detectDbType(string conn)
+        {
+            var s = conn.ToLowerInvariant();
+            if (s.Contains("oracle") || (s.Contains("data source") && s.Contains("user id") && !s.Contains("sqlite") && !s.Contains(".db"))) return DbType.Oracle;
+            if (s.Contains("postgresql") || s.Contains("host=") && s.Contains("username=")) return DbType.PostgreSQL;
+            if (s.Contains("mysql") || (s.Contains("server=") && s.Contains("port="))) return DbType.MySql;
+            if (s.Contains("sqlite") || s.Contains(".db")) return DbType.Sqlite;
+            if (s.Contains("kingbase") || s.Contains("kdb")) return DbType.Kdbndp;
+            return DbType.SqlServer;
+        }
+
+        var dbType = detectDbType(options.ConnectionString);
 
         var db = new SqlSugarClient(new ConnectionConfig
         {
-            ConnectionString = connectionString,
-            DbType = DbType.Sqlite,
+            ConnectionString = options.ConnectionString,
+            DbType = dbType,
             IsAutoCloseConnection = true,
             InitKeyType = InitKeyType.Attribute
         });
 
         InitAllTables(db);
 
-        Console.WriteLine($"[Storage] SQLite 数据库已初始化：{dbPath ?? "crawler.db"}");
-
-        return db;
-    }
-
-    /// <summary>
-    /// 创建 MySQL 数据库客户端。
-    /// </summary>
-    public static SqlSugarClient CreateMySqlDb(string connectionString)
-    {
-        // 启用 AOT 模式
-        StaticConfig.EnableAot = true;
-
-        var db = new SqlSugarClient(new ConnectionConfig
-        {
-            ConnectionString = connectionString,
-            DbType = DbType.MySql,
-            IsAutoCloseConnection = true,
-            InitKeyType = InitKeyType.Attribute
-        });
-
-        InitAllTables(db);
-
-        Console.WriteLine("[Storage] MySQL 数据库已初始化");
+        Console.WriteLine($"[Storage] {dbType} 数据库已初始化：{options.ConnectionString}");
 
         return db;
     }
@@ -103,4 +91,3 @@ public static class CrawlerStorageHelper
         db.CodeFirst.InitTables<WeiboCreator>();
     }
 }
-

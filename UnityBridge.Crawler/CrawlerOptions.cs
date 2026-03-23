@@ -6,7 +6,7 @@ namespace UnityBridge.Crawler;
 public class CrawlerOptions
 {
     /// <summary>签名服务地址。</summary>
-    public string SignServerUrl { get; set; } = "http://localhost:8888";
+    public string SignServerUrl { get; set; } = string.Empty;
 
     /// <summary>数据库配置。</summary>
     public DatabaseOptions Database { get; set; } = new();
@@ -23,11 +23,15 @@ public class CrawlerOptions
 
 public class DatabaseOptions
 {
-    /// <summary>数据库类型：SQLite 或 MySQL。</summary>
-    public string Type { get; set; } = "SQLite";
-
-    /// <summary>数据库连接字符串。</summary>
-    public string ConnectionString { get; set; } = "Data Source=crawler.db;";
+    /// <summary>
+    /// 数据库连接字符串。类型自动从连接串识别，支持 SQLite / MySQL / PostgreSQL / SqlServer / Oracle。
+    /// 示例：
+    ///   SQLite:     Data Source=crawler.db;
+    ///   PostgreSQL: HOST=127.0.0.1;PORT=5432;DATABASE=crawler;USERNAME=postgres;PASSWORD=xxx;
+    ///   MySQL:      Server=127.0.0.1;Port=3306;Database=crawler;Uid=root;Pwd=xxx;
+    ///   SqlServer:  Server=localhost;Database=crawler;User Id=xxx;Password=xxx;
+    /// </summary>
+    public string ConnectionString { get; set; } = string.Empty;
 }
 
 public class DelayOptions

@@ -35,42 +35,41 @@
 
     <!-- 选项3: AOT + 单文件 混合配置 -->
     <!-- 这是最优方案: 结合了 AOT 的性能和单文件的便利性 -->
-<!--    <PropertyGroup>-->
-<!--        <PublishAot>true</PublishAot>-->
-<!--        <PublishSingleFile>true</PublishSingleFile>-->
-<!--        <SelfContained>true</SelfContained>-->
-<!--        <RuntimeIdentifier>osx-arm64</RuntimeIdentifier>-->
-<!--        <InvariantGlobalization>false</InvariantGlobalization>-->
-<!--        <IlcOptimizationPreference>Speed</IlcOptimizationPreference>-->
-<!--    </PropertyGroup>-->
+    <!--    <PropertyGroup>-->
+    <!--        <PublishAot>true</PublishAot>-->
+    <!--        <PublishSingleFile>true</PublishSingleFile>-->
+    <!--        <SelfContained>true</SelfContained>-->
+    <!--        <RuntimeIdentifier>osx-arm64</RuntimeIdentifier>-->
+    <!--        <InvariantGlobalization>false</InvariantGlobalization>-->
+    <!--        <IlcOptimizationPreference>Speed</IlcOptimizationPreference>-->
+    <!--    </PropertyGroup>-->
 
-        <PropertyGroup>
-            <!-- 只保留 AOT 推荐设置（这些可以常驻，不影响非 AOT 编译） -->
-            <PublishTrimmed>true</PublishTrimmed>
-            <InvariantGlobalization>false</InvariantGlobalization>
-            <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
-        </PropertyGroup>
+    <PropertyGroup>
+        <!-- 只保留 AOT 推荐设置（这些可以常驻，不影响非 AOT 编译） -->
+        <PublishTrimmed>true</PublishTrimmed>
+        <InvariantGlobalization>false</InvariantGlobalization>
+        <IlcOptimizationPreference>Speed</IlcOptimizationPreference>
+    </PropertyGroup>
 
     <ItemGroup>
-      <Content Include="..\.dockerignore">
-        <Link>.dockerignore</Link>
-      </Content>
-      <Content Include="Configuration\*.json">
-        <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      </Content>
+        <Content Include="..\.dockerignore">
+            <Link>.dockerignore</Link>
+        </Content>
+        <Content Include="Configuration\*.json">
+            <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+        </Content>
     </ItemGroup>
 
     <ItemGroup>
-      <PackageReference Include="System.Management" Version="10.0.2" />
+        <PackageReference Include="System.Management" Version="10.0.2"/>
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\..\UnityBridge.Tools\UnityBridge.Tools.csproj" />
-      <ProjectReference Include="..\UnityBridge.Api.Dify\UnityBridge.Api.Dify.csproj" />
-      <ProjectReference Include="..\UnityBridge.Api.Sino\UnityBridge.Api.Sino.csproj" />
-      <ProjectReference Include="..\UnityBridge.Core\UnityBridge.Core.csproj" />
-      <ProjectReference Include="..\UnityBridge.Tools\UnityBridge.Tools.csproj" />
-<!--      <ProjectReference Include="..\UnityBridge.Crawler\UnityBridge.Crawler.csproj" />-->
+        <ProjectReference Include="..\UnityBridge.Api.Dify\UnityBridge.Api.Dify.csproj"/>
+        <ProjectReference Include="..\UnityBridge.Api.Sino\UnityBridge.Api.Sino.csproj"/>
+        <ProjectReference Include="..\..\UnityBridge.Tools\UnityBridge.Tools.csproj"/>
+        <ProjectReference Include="..\..\UnityBridge.Core\UnityBridge.Core.csproj"/>
+        <!--      <ProjectReference Include="..\UnityBridge.Crawler\UnityBridge.Crawler.csproj" />-->
     </ItemGroup>
 
 </Project>
