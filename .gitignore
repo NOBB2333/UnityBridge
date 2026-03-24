@@ -9,3 +9,7 @@ obj/
 /packages/
 riderModule.iml
 /_ReSharper.Caches/
+
+
+# build file
+UnityBridge.Crawler.Sdk.Generate/clients
